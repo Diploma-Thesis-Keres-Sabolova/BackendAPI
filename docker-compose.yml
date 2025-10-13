@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:15
-    container_name: diploma_db
+    container_name: ${CONTAINER_NAME}
     restart: always
     env_file:
       - .env
