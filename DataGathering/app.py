@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import date
-from DataGathering.WeatherProvider import WeatherProvider
+from WeatherProvider import WeatherProvider
 
 forecast_provider = WeatherProvider(
     name="OpenMeteo_Forecast",

@@ -9,10 +9,10 @@ load_dotenv()
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from models.Base import Base
-from models.Provider import Provider
-from models.Run import Run
-from models.WeatherData import WeatherData
+from app.models.Base import Base
+from app.models.Provider import Provider
+from app.models.Run import Run
+from app.models.WeatherData import WeatherData
 
 config = context.config
 if config.config_file_name is not None:
