@@ -1,11 +1,32 @@
 from fastapi import FastAPI
-from api import weather, providers, runs
+from api import raw_data, providers, runs
 import os
+import logging
 from dotenv import load_dotenv
-
+from app.database import engine
+from app.utils.logger_config import LoggerConfigurator
+from app.utils.middleware import RequestIdMiddleware
 
 load_dotenv()
 ENV = os.getenv("ENV", "development")
+
+config = LoggerConfigurator(
+    name="BackendAPI",
+    level=logging.INFO,
+    logfile="logs/myapp.log",
+    when="midnight",
+    backup_count=30,
+    use_json=True,
+)
+config.configure_root_logger()
+
+logger = logging.getLogger("BackendAPI")
+
+async def lifespan(app: FastAPI):
+    logger.info("Fast API opened")
+    yield
+    engine.dispose()
+    logger.info("Fast API closed")
 
 app = FastAPI(
     openapi_url="/openapi.json" if ENV != "production" else None,
@@ -13,10 +34,11 @@ app = FastAPI(
     redoc_url="/redoc" if ENV != "production" else None,
 )
 
+app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
 
-app.include_router(providers.router, prefix="/providers", tags=["Providers"])
-app.include_router(runs.router, prefix="/runs", tags=["Runs"])
-app.include_router(weather.router, prefix="/weather", tags=["Weather"])
+app.include_router(providers.router)
+app.include_router(runs.router)
+app.include_router(raw_data.router)
 
 
 if __name__ == "__main__":

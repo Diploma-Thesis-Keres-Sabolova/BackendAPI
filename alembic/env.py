@@ -12,7 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app.models.Base import Base
 from app.models.Provider import Provider
 from app.models.Run import Run
-from app.models.WeatherData import WeatherData
+from app.models.RawData import RawData
 
 config = context.config
 if config.config_file_name is not None:
@@ -24,7 +24,6 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in .env file")
 
 target_metadata = Base.metadata
-
 
 def run_migrations_offline():
     """rin offline migrations"""
@@ -42,7 +41,7 @@ def run_migrations_online():
     """run online migrations"""
     engine = create_engine(DATABASE_URL, poolclass=pool.NullPool)
 
-    with engine.connect() as connection:
+    with engine.begin() as connection:
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS raw_data'))
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS processed_data'))
 

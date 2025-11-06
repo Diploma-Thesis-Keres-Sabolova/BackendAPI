@@ -1,11 +1,11 @@
-# providers/provider.py
-from abc import ABC, abstractmethod
+import os
+import csv
 from datetime import date
 
 from DataGathering.RestClient import RestClient
 
 
-class Provider(ABC):
+class Provider():
     """Abstract class for providers"""
 
     def __init__(self, name: str, endpoint: str, params: dict):
@@ -29,10 +29,9 @@ class Provider(ABC):
         """Validates data"""
         return data is not None and len(data) > 0
 
-    @abstractmethod
     def save(self, data, target_date: date):
         """Saves loaded raw data into database """
-        pass
+        print(f"✅ Data saved to {filename}")
 
     def run(self, target_date: date):
         """Makes fetch, validate and save"""
