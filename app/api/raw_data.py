@@ -3,12 +3,14 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
+from app.dependencies.auth import get_api_key
 from app.models.RawData import RawData
 from app.schemas.RawDataSchema import RawDataResponse, RawDataCreate, RawDataUpdate
 
 router = APIRouter(
     prefix="/raw_data",
-    tags=["RawData"]
+    tags=["RawData"],
+    dependencies=[Depends(get_api_key)]
 )
 
 @router.get("/", response_model=List[RawDataResponse])

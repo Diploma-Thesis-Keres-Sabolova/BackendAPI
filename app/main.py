@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from app.database import engine
 from app.utils.logger_config import LoggerConfigurator
 from app.utils.middleware import RequestIdMiddleware
+from contextlib import asynccontextmanager
 
 load_dotenv()
 ENV = os.getenv("ENV", "development")
@@ -22,13 +23,15 @@ config.configure_root_logger()
 
 logger = logging.getLogger("BackendAPI")
 
-async def lifespan(app: FastAPI):
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     logger.info("Fast API opened")
     yield
     engine.dispose()
     logger.info("Fast API closed")
 
 app = FastAPI(
+    lifespan=lifespan,
     openapi_url="/openapi.json" if ENV != "production" else None,
     docs_url="/docs" if ENV != "production" else None,
     redoc_url="/redoc" if ENV != "production" else None,

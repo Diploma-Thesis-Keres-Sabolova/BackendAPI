@@ -16,4 +16,4 @@ class RawData(Base):
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
-    run = relationship("Run", back_populates="weather_data")
+    run = relationship("Run", back_populates="data")

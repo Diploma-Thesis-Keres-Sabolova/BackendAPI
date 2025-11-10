@@ -26,7 +26,6 @@ class ProviderResponse(CustomBaseModel):
         from_attributes = True
 
 class ProviderCreate(CustomBaseModel):
-    run_id: int
     name: str
     endpoint: str
     description: Optional[str] = None

@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from typing import Optional
 
-from logger_config import LoggerConfigurator
+from app.utils.logger_config import LoggerConfigurator
 
 logger = logging.getLogger("BackendAPI.middleware")
 

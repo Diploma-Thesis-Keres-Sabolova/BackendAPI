@@ -16,4 +16,4 @@ class Run(Base):
     message = Column(String, nullable=False)
 
     provider = relationship("Provider", back_populates="runs")
-    weather_data = relationship("RawDara", back_populates="run", cascade="all, delete-orphan")
+    data = relationship("RawData", back_populates="run", cascade="all, delete-orphan")

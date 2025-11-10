@@ -13,11 +13,11 @@ request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=Non
 from pythonjsonlogger import json
 
 
-class RequestIdFilter(logging.Filter):
-    """Add request_id from contextvar into LogRecord"""
+class RequestContextFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = request_id_var.get() or "-"
         return True
+
 
 
 class ContextFormatter(logging.Formatter):
@@ -54,7 +54,10 @@ class LoggerConfigurator:
         ch.setLevel(self.level)
 
         if self.use_json:
-            fmt = json.JsonFormatter('%(isoTime)s %(levelname)s %(name)s %(message)s %(request_id)s')
+            fmt = json.JsonFormatter(
+                fmt='%(timestamp)s %(levelname)s %(name)s %(message)s %(request_id)s',
+                timestamp=True
+            )
             ch.setFormatter(fmt)
         return ch
 
@@ -83,7 +86,7 @@ class LoggerConfigurator:
             root.removeHandler(h)
 
         root.setLevel(self.level)
-        request_filter = RequestIdFilter()
+        request_filter = RequestContextFilter()
         root.addFilter(request_filter)
 
         ch = self._create_console_handler()
@@ -93,9 +96,13 @@ class LoggerConfigurator:
         if fh:
             root.addHandler(fh)
 
-        logging.getLogger("uvicorn.access").setLevel(logging.INFO)
-        logging.getLogger("uvicorn.error").setLevel(logging.INFO)
-        logging.getLogger("asyncio").setLevel(logging.WARNING)
+        uvicorn_error = logging.getLogger("uvicorn.error")
+        uvicorn_access = logging.getLogger("uvicorn.access")
+        for logger_uv in (uvicorn_error, uvicorn_access):
+            logger_uv.setLevel(logging.INFO)
+            logger_uv.addFilter(RequestContextFilter())
+            if not any(isinstance(h, logging.StreamHandler) for h in logger_uv.handlers):
+                logger_uv.addHandler(self._create_console_handler())
 
     @staticmethod
     def set_request_id(rid: Optional[str] = None):

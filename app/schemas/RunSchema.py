@@ -13,7 +13,7 @@ class RunResponse(CustomBaseModel):
     status: str
     message: str
     provider: Optional[ProviderResponse]
-    weather_data: Optional[List[RawDataInRun]] = []
+    data: Optional[List[RawDataInRun]] = []
 
     class Config(CustomBaseModel.Config):
         from_attributes = True
