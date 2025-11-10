@@ -1,7 +1,9 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:15
-    container_name: ${CONTAINER_NAME}
+    container_name: ${CONTAINER_NAME}_db
     restart: always
     env_file:
       - .env
@@ -14,5 +16,37 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  fastapi:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: ${CONTAINER_NAME}_fastapi
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"  # FastAPI port
+    networks:
+      - app-network
+
+  data_gathering:
+    build:
+      context: ./DataGathering
+      dockerfile: Dockerfile
+    container_name: ${CONTAINER_NAME}_data
+    restart: "no"
+    env_file:
+      - .env
+    depends_on:
+      - fastapi
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

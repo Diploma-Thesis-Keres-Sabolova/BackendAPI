@@ -1,0 +1,10 @@
+sqlalchemy
+fastapi
+python-dotenv
+pydantic
+starlette
+uvicorn[standard]
+psycopg2-binary
+python-json-logger
+requests
+alembic

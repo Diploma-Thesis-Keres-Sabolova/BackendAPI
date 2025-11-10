@@ -5,8 +5,7 @@ from datetime import date
 from DataGathering.RestClient import RestClient
 
 
-class Provider():
-    """Abstract class for providers"""
+class Provider:
 
     def __init__(self, name: str, endpoint: str, params: dict):
         self.name = name
@@ -31,7 +30,7 @@ class Provider():
 
     def save(self, data, target_date: date):
         """Saves loaded raw data into database """
-        print(f"✅ Data saved to {filename}")
+        print(f"✅ Data saved to ")
 
     def run(self, target_date: date):
         """Makes fetch, validate and save"""
