@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from api import raw_data, providers, runs
+from app.api import raw_data, providers, runs
 import os
 import logging
 from dotenv import load_dotenv

@@ -2,7 +2,7 @@ import os
 import csv
 from datetime import date
 
-from DataGathering.RestClient import RestClient
+from RestClient import RestClient
 
 
 class Provider:

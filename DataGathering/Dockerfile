@@ -2,9 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY DataGathering/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY DataGathering/ ./DataGathering
 
-CMD ["python", "app.py"]
+CMD ["python", "DataGathering/app.py"]

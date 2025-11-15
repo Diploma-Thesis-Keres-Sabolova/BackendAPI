@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("FAST_API_DB_URL")
 POOL_SIZE = 10
 MAX_OVERFLOW = 20
 POOL_TIMEOUT = 30
