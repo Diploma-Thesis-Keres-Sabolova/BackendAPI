@@ -32,6 +32,7 @@ def run_migrations_offline():
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_schemas=True
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -45,7 +46,11 @@ def run_migrations_online():
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS raw_data'))
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS processed_data'))
 
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_schemas=True
+        )
 
         with context.begin_transaction():
             context.run_migrations()
