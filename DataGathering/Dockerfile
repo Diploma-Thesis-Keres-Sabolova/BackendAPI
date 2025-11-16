@@ -7,4 +7,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY DataGathering/ ./DataGathering
 
-CMD ["python", "DataGathering/app.py"]
+RUN apt-get update && apt-get install -y cron && rm -rf /var/lib/apt/lists/*
+
+COPY DataGathering/cron /etc/cron.d/data_gathering
+RUN chmod 0644 /etc/cron.d/data_gathering
+RUN cron /etc/cron.d/data_gathering
+
+CMD ["cron", "-f"]

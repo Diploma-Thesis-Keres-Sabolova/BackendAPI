@@ -1,6 +1,7 @@
 import os
 import csv
 from datetime import date, datetime
+from typing import Optional
 
 from DataClasses.ProviderInfo import ProviderInfo
 from DataClasses.RunInfo import RunInfo
@@ -9,15 +10,22 @@ from RestClient import RestClient
 
 class Provider:
 
-    def __init__(self, name: str, endpoint: str, params: dict):
+    def __init__(self, name: str, endpoint: str, target_date: date, params: dict,
+                 timestamp_pth: str, data_pth: str, units_pth: Optional[str]):
         self.name = name
         self.rest_client = RestClient()
         self.endpoint = endpoint
         self.params = params
-        self.fast_api_base_url = os.getenv("FASTAPI_URL")
-        self.api_key = os.getenv("API_KEY")
+        self.target_date = target_date
+        self.timestamp_pth = timestamp_pth
+        self.data_pth = data_pth
+        self.units_pth = units_pth
+        #self.fast_api_base_url = os.getenv("FASTAPI_URL")
+        #self.api_key = os.getenv("API_KEY")
+        self.fast_api_base_url = "http://localhost:8000"
+        self.api_key = "VSbQs3pAGkZ3yXbgy5dL3TI17GrdDjEM"
 
-    def fetch_data(self, target_date: date, extra_params: dict | None = None):
+    def fetch_data(self, extra_params: dict | None = None):
         params = self.params.copy()
         if extra_params:
             params.update(extra_params)
@@ -32,7 +40,7 @@ class Provider:
         """Validates data"""
         return data is not None and len(data) > 0
 
-    def save(self, data, target_date: date):
+    def save(self, data):
         """Saves loaded raw data into database """
         provider_list = self.get_provider()
 
@@ -41,35 +49,50 @@ class Provider:
         else:
             provider_id = provider_list[0].id
 
-        run_id = self.create_run(provider_id, target_date).id
+        run_id = self.create_run(provider_id, self.target_date).id
 
-        rows = data if isinstance(data, list) else [data]
+        timestamps = self.get_by_path(data, self.timestamp_pth)
 
-        for row in rows:
-            ts = (
-                row["timestamp"]
-                if "timestamp" in row
-                else datetime.now().isoformat()
-            )
+        values_dict = self.get_by_path(data, self.data_pth)
 
-            for key, val in row.items():
-                if key == "timestamp":
+        if self.units_pth:
+            units_dict = self.get_by_path(data, self.units_pth)
+        else:
+            units_dict = {}
+
+        timestamp_key = self.timestamp_pth.split(".")[-1]
+        for i, ts in enumerate(timestamps):
+            for key, val_list in values_dict.items():
+                if key == timestamp_key:
                     continue
 
-                if isinstance(val, (dict, list)):
+                val = val_list[i] if i < len(val_list) else None
+                if val is None:
                     continue
 
-                self.create_raw_data(run_id, ts, key, val)
+                unit = units_dict.get(key) if units_dict else None
+                self.create_raw_data(run_id, ts, key, val, unit)
 
-        self.update_run(run_id, len(rows))
+        self.update_run(run_id, len(timestamps))
+        print(f"✅ Saved {len(timestamps)} rows of raw data (run={run_id}, provider={provider_id})")
 
-        print(f"✅ Saved {len(rows)} rows of raw data (run={run_id}, provider={provider_id})")
+    @staticmethod
+    def get_by_path(obj, path: str):
+        try:
+            for p in path.split("."):
+                if p.isdigit():
+                    obj = obj[int(p)]
+                else:
+                    obj = obj[p]
+            return obj
+        except (KeyError, IndexError, TypeError):
+            return None
 
-    def run(self, target_date: date):
+    def run(self):
         """Makes fetch, validate and save"""
-        data = self.fetch_data(target_date)
+        data = self.fetch_data()
         self.validate(data)
-        self.save(data, target_date)
+        self.save(data)
 
     def get_provider(self):
         resp = self.rest_client.get(
@@ -112,7 +135,7 @@ class Provider:
 
         return RunInfo(**resp)
 
-    def create_raw_data(self, run_id: int, ts: datetime, key: str, val: str):
+    def create_raw_data(self, run_id: int, ts: datetime, key: str, val: str, unit: Optional[str]):
         self.rest_client.post(
             f"{self.fast_api_base_url}/raw_data",
             json={
@@ -120,7 +143,7 @@ class Provider:
                 "timestamp": ts,
                 "name": key,
                 "value": val,
-                "unit": None
+                "unit": unit
             },
             headers={"X-API-Key": self.api_key}
         )
