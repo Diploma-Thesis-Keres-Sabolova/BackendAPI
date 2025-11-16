@@ -12,7 +12,6 @@ forecast_provider = Provider(
     }
 )
 
-# Historical provider (hodinové dáta)
 historical_provider = Provider(
     name="OpenMeteo_History",
     endpoint="https://archive-api.open-meteo.com/v1/archive",

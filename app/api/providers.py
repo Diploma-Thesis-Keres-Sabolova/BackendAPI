@@ -14,8 +14,16 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[ProviderResponse])
-def read_providers(db: Session = Depends(get_db)):
-    return db.query(Provider).all()
+def read_providers(name: str | None = None, endpoint: str | None = None, params: str | None = None, db: Session = Depends(get_db)):
+    query = db.query(Provider)
+    if name:
+        query = query.filter(Provider.name == name)
+    if endpoint:
+        query = query.filter(Provider.endpoint == endpoint)
+    if params:
+        query = query.filter(Provider.params == params)
+
+    return query.all()
 
 @router.post("/", response_model=ProviderResponse)
 def create_provider(provider: ProviderCreate, db: Session = Depends(get_db)):

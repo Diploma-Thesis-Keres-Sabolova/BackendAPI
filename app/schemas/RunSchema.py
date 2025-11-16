@@ -12,6 +12,18 @@ class RunResponse(CustomBaseModel):
     target_date: date
     status: str
     message: str
+
+    class Config(CustomBaseModel.Config):
+        from_attributes = True
+
+class RunWithDataResponse(CustomBaseModel):
+    id: int
+    provider_id: int
+    run_timestamp: datetime
+    data_type: str
+    target_date: date
+    status: str
+    message: str
     provider: Optional[ProviderResponse]
     data: Optional[List[RawDataInRun]] = []
 

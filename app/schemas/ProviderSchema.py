@@ -20,6 +20,16 @@ class ProviderResponse(CustomBaseModel):
     endpoint: str
     description: Optional[str]
     params: Optional[str]
+
+    class Config(CustomBaseModel.Config):
+        from_attributes = True
+
+class ProviderWithRunsResponse(CustomBaseModel):
+    id: int
+    name: str
+    endpoint: str
+    description: Optional[str]
+    params: Optional[str]
     runs: Optional[List[RunInProvider]] = []
 
     class Config(CustomBaseModel.Config):

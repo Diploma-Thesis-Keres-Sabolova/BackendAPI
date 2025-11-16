@@ -83,3 +83,55 @@ class RestClient:
         except requests.RequestException as e:
             print(f"[RestClient] POST {url} failed: {e}")
             raise
+
+    def put(
+        self,
+        path: str,
+        data: Optional[Dict[str, Any]] = None,
+        json: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Union[Dict, str]:
+        """Makes PUT request"""
+        url = self._make_url(path)
+        merged_headers = {**self.default_headers, **(headers or {})}
+
+        try:
+            response = self.session.put(
+                url,
+                data=data,
+                json=json,
+                headers=merged_headers,
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+
+            try:
+                return response.json()
+            except ValueError:
+                return response.text
+
+        except requests.RequestException as e:
+            print(f"[RestClient] PUT {url} failed: {e}")
+            raise
+
+    def delete(
+        self,
+        path: str,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Union[Dict, str]:
+        """Makes DELETE request"""
+        url = self._make_url(path)
+        merged_headers = {**self.default_headers, **(headers or {})}
+
+        try:
+            response = self.session.delete(url, headers=merged_headers, timeout=self.timeout)
+            response.raise_for_status()
+
+            try:
+                return response.json()
+            except ValueError:
+                return response.text
+
+        except requests.RequestException as e:
+            print(f"[RestClient] DELETE {url} failed: {e}")
+            raise
