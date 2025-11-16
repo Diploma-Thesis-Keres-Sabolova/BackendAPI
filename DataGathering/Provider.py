@@ -20,10 +20,8 @@ class Provider:
         self.timestamp_pth = timestamp_pth
         self.data_pth = data_pth
         self.units_pth = units_pth
-        #self.fast_api_base_url = os.getenv("FASTAPI_URL")
-        #self.api_key = os.getenv("API_KEY")
-        self.fast_api_base_url = "http://localhost:8000"
-        self.api_key = "VSbQs3pAGkZ3yXbgy5dL3TI17GrdDjEM"
+        self.fast_api_base_url = os.getenv("FASTAPI_URL")
+        self.api_key = os.getenv("API_KEY")
 
     def fetch_data(self, extra_params: dict | None = None):
         params = self.params.copy()
