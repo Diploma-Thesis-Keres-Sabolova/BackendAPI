@@ -64,6 +64,9 @@ class Provider:
         else:
             units_dict = {}
 
+        if not timestamps:
+            timestamps, values_dict = self.normalize_data(data)
+
         timestamp_key = self.timestamp_pth.split(".")[-1]
         for i, ts in enumerate(timestamps):
             for key, val_list in values_dict.items():
@@ -91,6 +94,77 @@ class Provider:
             return obj
         except (KeyError, IndexError, TypeError):
             return None
+
+    def normalize_data(self, data):
+        """
+        Returns (timestamps, values_dict) in universal columnar format.
+        Detects whether the structure is row-based, column-based, table-based, or timeseries.
+        """
+
+        # --- 1: ROW-BASED ---
+        # Example: [ { "ts": "...", "price": 1.2 }, {...} ]
+        if isinstance(data, list) and data and isinstance(data[0], dict):
+            timestamp_key = self.timestamp_pth.split(".")[-1]
+
+            timestamps = [row.get(timestamp_key) for row in data]
+
+            values_dict = {}
+            for row in data:
+                for key, val in row.items():
+                    if key == timestamp_key:
+                        continue
+                    values_dict.setdefault(key, []).append(val)
+
+            return timestamps, values_dict
+
+        # --- 2: COLUMN-BASED ---
+        # Example: { "time": [...], "temperature": [...], "wind": [...] }
+        if isinstance(data, dict) and all(isinstance(v, list) for v in data.values()):
+            timestamp_key = self.timestamp_pth.split(".")[-1]
+            timestamps = data.get(timestamp_key)
+
+            values_dict = {
+                key: lst for key, lst in data.items()
+                if key != timestamp_key
+            }
+
+            return timestamps, values_dict
+
+        # --- 3: TABLE FORMAT ---
+        # Example: { "headers": [...], "rows": [ [...], [...]] }
+        if isinstance(data, dict) and "headers" in data and "rows" in data:
+            headers = data["headers"]
+            rows = data["rows"]
+
+            timestamp_index = headers.index(self.timestamp_pth)
+
+            timestamps = [row[timestamp_index] for row in rows]
+
+            values_dict = {h: [] for h in headers if h != self.timestamp_pth}
+
+            for row in rows:
+                for i, h in enumerate(headers):
+                    if i == timestamp_index:
+                        continue
+                    values_dict[h].append(row[i])
+
+            return timestamps, values_dict
+
+        # --- 4: TIMESERIES ---
+        # Example: { "2025-01-01T00": {"price": 1, "flow": 10}, ... }
+        if isinstance(data, dict) and all(isinstance(v, dict) for v in data.values()):
+            timestamps = list(data.keys())
+
+            sample = next(iter(data.values()))
+            values_dict = {key: [] for key in sample.keys()}
+
+            for ts, row in data.items():
+                for key, val in row.items():
+                    values_dict[key].append(val)
+
+            return timestamps, values_dict
+
+        raise ValueError("Unknown data structure, cannot normalize.")
 
     def run(self):
         """Makes fetch, validate and save"""
