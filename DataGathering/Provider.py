@@ -1,5 +1,4 @@
 import os
-import csv
 from datetime import date, datetime
 from typing import Optional
 
@@ -21,7 +20,14 @@ class Provider:
         self.data_pth = data_pth
         self.units_pth = units_pth
         self.fast_api_base_url = os.getenv("FASTAPI_URL")
+
+        if not self.fast_api_base_url:
+            raise ValueError("self.fast_api_base_url is not set in .env file")
+
         self.api_key = os.getenv("API_KEY")
+
+        if not self.api_key:
+            raise ValueError("self.api_key is not set in .env file")
 
     def fetch_data(self, extra_params: dict | None = None):
         params = self.params.copy()

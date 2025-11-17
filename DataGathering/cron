@@ -1,2 +1,3 @@
-TZ=Europe/Bratislava
-54 11 * * * root python /app/DataGathering/app.py >> /var/log/data_gathering.log 2>&1
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+00 11 * * * python /app/DataGathering/app.py >> /var/log/data_gathering.log 2>&1

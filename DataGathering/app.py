@@ -1,8 +1,11 @@
-import pandas as pd
+import os
 from datetime import date
 from Provider import Provider
+from dotenv import load_dotenv
 
 def main():
+
+    load_dotenv("/app/.env")
 
     forecast_provider = Provider(
         name="OpenMeteo_Forecast",
