@@ -5,8 +5,7 @@ def main():
 
     load_dotenv("/app/.env")
 
-    #loader = YamlProviderLoader("/app/providers.yaml")
-    loader = YamlProviderLoader("providers.yaml")
+    loader = YamlProviderLoader("/app/DataGathering/providers.yaml")
     providers = loader.load_providers()
 
     for provider in providers:
