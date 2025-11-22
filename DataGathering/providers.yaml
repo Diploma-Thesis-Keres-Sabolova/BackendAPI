@@ -1,0 +1,34 @@
+providers:
+  - name: OKTE_DAM
+    endpoint: "https://isot.okte.sk/api/v1/dam/results"
+    timestamp_pth: "deliveryStart"
+    data_pth: ""
+    units_pth: null
+    params:
+      deliveryDayFrom: "{{today}}"
+      deliveryDayTo: "{{today}}"
+    description: "OKTE provider"
+
+  - name: OpenMeteo_Forecast
+    endpoint: "https://api.open-meteo.com/v1/forecast"
+    timestamp_pth: "minutely_15.time"
+    data_pth: "minutely_15"
+    units_pth: "minutely_15_units"
+    params:
+      latitude: 48.15
+      longitude: 17.11
+      minutely_15: "temperature_2m,rain,snowfall,wind_speed_10m,dew_point_2m,precipitation"
+    description: "OpenMeteo Forecast data"
+
+  - name: OpenMeteo_History
+    endpoint: "https://archive-api.open-meteo.com/v1/archive"
+    timestamp_pth: "hourly.time"
+    data_pth: "hourly"
+    units_pth: "hourly_units"
+    params:
+      latitude: 48.15
+      longitude: 17.11
+      start_date: "{{today}}"
+      end_date: "{{today}}"
+      hourly: "temperature_2m,dew_point_2m,rain,snowfall,wind_speed_10m,precipitation"
+    description: "OpenMeteo Hist data"

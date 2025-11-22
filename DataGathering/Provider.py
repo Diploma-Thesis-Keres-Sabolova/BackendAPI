@@ -9,12 +9,13 @@ from RestClient import RestClient
 
 class Provider:
 
-    def __init__(self, name: str, endpoint: str, target_date: date, params: dict,
+    def __init__(self, name: str, endpoint: str, target_date: date, params: dict, description: Optional[str],
                  timestamp_pth: str, data_pth: str, units_pth: Optional[str]):
         self.name = name
         self.rest_client = RestClient()
         self.endpoint = endpoint
         self.params = params
+        self.description = description
         self.target_date = target_date
         self.timestamp_pth = timestamp_pth
         self.data_pth = data_pth
@@ -174,11 +175,10 @@ class Provider:
 
     def get_provider(self):
         resp = self.rest_client.get(
-            f"{self.fast_api_base_url}/provider",
+            f"{self.fast_api_base_url}/provider/",
             params={
                 "name": self.name,
-                "endpoint": self.endpoint,
-                "params": str(self.params)
+                "endpoint": self.endpoint
             },
             headers={"X-API-Key": self.api_key}
         )
@@ -187,10 +187,10 @@ class Provider:
 
     def create_provider(self):
         resp = self.rest_client.post(
-            f"{self.fast_api_base_url}/provider", json={
+            f"{self.fast_api_base_url}/provider/", json={
                 "name": self.name,
                 "endpoint": self.endpoint,
-                "params": str(self.params)
+                "description": self.description,
             },
             headers={"X-API-Key": self.api_key}
         )
@@ -199,10 +199,11 @@ class Provider:
 
     def create_run(self, provider_id: int, target_date: date):
         resp = self.rest_client.post(
-            f"{self.fast_api_base_url}/run",
+            f"{self.fast_api_base_url}/run/",
             json={
                 "provider_id": provider_id,
                 "run_timestamp": datetime.now().timestamp(),
+                "params": str(self.params),
                 "data_type": "RAW",
                 "target_date": target_date.isoformat(),
                 "status": "STARTED",
@@ -215,12 +216,12 @@ class Provider:
 
     def create_raw_data(self, run_id: int, ts: datetime, key: str, val: str, unit: Optional[str]):
         self.rest_client.post(
-            f"{self.fast_api_base_url}/raw_data",
+            f"{self.fast_api_base_url}/raw_data/",
             json={
                 "run_id": run_id,
                 "timestamp": ts,
                 "name": key,
-                "value": val,
+                "value": str(val),
                 "unit": unit
             },
             headers={"X-API-Key": self.api_key}
