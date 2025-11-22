@@ -5,7 +5,7 @@ from .Base import Base
 class Provider(Base):
     __tablename__ = "provider"
     __table_args__ = (
-        UniqueConstraint("name", "endpoint", "params", name="uq_provider_unique"),
+        UniqueConstraint("name", "endpoint", name="uq_provider_unique"),
         {"schema": "raw_data"}
     )
 
@@ -13,6 +13,5 @@ class Provider(Base):
     name = Column(String, nullable=False)
     endpoint = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    params = Column(Text, nullable=True)
 
     runs = relationship("Run", back_populates="provider")

@@ -8,6 +8,7 @@ class RunResponse(CustomBaseModel):
     id: int
     provider_id: int
     run_timestamp: datetime
+    params: Optional[str]
     data_type: str
     target_date: date
     status: str
@@ -20,6 +21,7 @@ class RunWithDataResponse(CustomBaseModel):
     id: int
     provider_id: int
     run_timestamp: datetime
+    params: Optional[str]
     data_type: str
     target_date: date
     status: str
@@ -35,6 +37,7 @@ class RunCreate(CustomBaseModel):
     run_timestamp: datetime
     data_type: str
     target_date: datetime
+    params: Optional[str]
     status: str
     message: Optional[str] = None
 

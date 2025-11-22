@@ -7,5 +7,4 @@ class ProviderInfo:
     id: int
     name: str
     endpoint: str
-    params: dict
     description: Optional[str] = None

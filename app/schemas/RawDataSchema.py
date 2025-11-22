@@ -8,7 +8,7 @@ class RawDataResponse(CustomBaseModel):
     run_id: int
     timestamp: datetime
     name: str
-    value: Optional[float] = None
+    value: Optional[str] = None
     unit: Optional[str] = None
     created_at: datetime
 
@@ -18,7 +18,7 @@ class RawDataResponse(CustomBaseModel):
 
 class RawDataInRun(CustomBaseModel):
     name: str
-    value: Optional[float]
+    value: Optional[str]
     unit: Optional[str]
     timestamp: datetime
 
@@ -29,12 +29,12 @@ class RawDataCreate(CustomBaseModel):
     run_id: int
     timestamp: datetime
     name: str
-    value: Optional[float] = None
+    value: Optional[str] = None
     unit: Optional[str] = None
 
 
 class RawDataUpdate(CustomBaseModel):
     timestamp: Optional[datetime] = None
     name: Optional[str] = None
-    value: Optional[float] = None
+    value: Optional[str] = None
     unit: Optional[str] = None

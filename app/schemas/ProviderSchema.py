@@ -8,6 +8,7 @@ class RunInProvider(CustomBaseModel):
     run_timestamp: datetime
     data_type: str
     target_date: date
+    params: Optional[str]
     status: str
     message: str
 
@@ -19,7 +20,7 @@ class ProviderResponse(CustomBaseModel):
     name: str
     endpoint: str
     description: Optional[str]
-    params: Optional[str]
+
 
     class Config(CustomBaseModel.Config):
         from_attributes = True
@@ -29,7 +30,6 @@ class ProviderWithRunsResponse(CustomBaseModel):
     name: str
     endpoint: str
     description: Optional[str]
-    params: Optional[str]
     runs: Optional[List[RunInProvider]] = []
 
     class Config(CustomBaseModel.Config):
@@ -39,9 +39,7 @@ class ProviderCreate(CustomBaseModel):
     name: str
     endpoint: str
     description: Optional[str] = None
-    params: Optional[str] = None
 
 class ProviderUpdate(CustomBaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    params: Optional[str] = None
