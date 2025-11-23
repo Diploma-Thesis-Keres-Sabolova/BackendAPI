@@ -4,7 +4,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from typing import Optional, Dict, Any, Union
 
-from AuthBase import AuthBase
+from .AuthBase import AuthBase
 
 class RestClient:
     """

@@ -2,10 +2,10 @@ import os
 from datetime import date, datetime
 from typing import Optional
 
-from DataClasses.ProviderInfo import ProviderInfo
-from DataClasses.RunInfo import RunInfo
-from AuthBase import AuthBase, HeaderAuth
-from RestClient import RestClient
+from DataGathering.DataClasses.ProviderInfo import ProviderInfo
+from DataGathering.DataClasses.RunInfo import RunInfo
+from .AuthBase import AuthBase, HeaderAuth
+from .RestClient import RestClient
 
 
 class Provider:

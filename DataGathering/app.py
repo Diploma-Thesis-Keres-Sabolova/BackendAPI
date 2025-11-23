@@ -1,4 +1,4 @@
-from YamlReader import YamlProviderLoader
+from Utils.YamlReader import YamlProviderLoader
 from dotenv import load_dotenv
 
 def main():

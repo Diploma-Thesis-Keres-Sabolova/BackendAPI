@@ -4,8 +4,8 @@ import yaml
 from datetime import date
 from typing import List, Dict, Any
 
-from AuthBase import QueryAuth, HeaderAuth, AuthorizationAuth
-from Provider import Provider
+from .AuthBase import QueryAuth, HeaderAuth, AuthorizationAuth
+from .Provider import Provider
 
 
 class YamlProviderLoader:

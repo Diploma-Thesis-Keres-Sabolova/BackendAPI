@@ -1,3 +1,5 @@
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+PYTHONPATH=/app
+
 00 11 * * * python /app/DataGathering/app.py >> /var/log/data_gathering.log 2>&1

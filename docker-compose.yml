@@ -37,7 +37,7 @@ services:
       context: .
       dockerfile: DataGathering/Dockerfile
     container_name: ${CONTAINER_NAME}_data
-    restart: "no"
+    restart: "on-failure"
     env_file:
       - .env
     depends_on:
