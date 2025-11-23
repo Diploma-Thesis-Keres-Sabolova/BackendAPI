@@ -24,6 +24,7 @@ class Provider:
         self.units_pth = units_pth
         self.value_key_pth = value_key_pth
         self.fast_api_base_url = os.getenv("FASTAPI_URL")
+        self.rows_saved = 0
 
         if not self.fast_api_base_url:
             raise ValueError("self.fast_api_base_url is not set in .env file")
@@ -88,6 +89,7 @@ class Provider:
                 self.create_raw_data(run_id, ts, key, val, unit)
 
         self.update_run(run_id, len(timestamps))
+        self.rows_saved = len(timestamps)
         print(f"✅ Saved {len(timestamps)} rows of raw data (run={run_id}, provider={provider_id})")
 
     @staticmethod
