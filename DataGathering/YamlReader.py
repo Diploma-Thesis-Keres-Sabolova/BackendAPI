@@ -1,6 +1,10 @@
+import os
+
 import yaml
 from datetime import date
 from typing import List, Dict, Any
+
+from AuthBase import QueryAuth, HeaderAuth, AuthorizationAuth
 from Provider import Provider
 
 
@@ -59,15 +63,19 @@ class YamlProviderLoader:
 
             params = self.apply_templates(p_cfg.get("params", {}))
 
+            auth = self.build_auth(p_cfg.get("auth"))
+
             provider = Provider(
                 name=p_cfg["name"],
                 endpoint=p_cfg["endpoint"],
+                endpoint_auth=auth,
                 target_date=date.today(),
                 params=params,
                 description=p_cfg["description"],
                 timestamp_pth=p_cfg["timestamp_pth"],
                 data_pth=p_cfg["data_pth"],
-                units_pth=p_cfg.get("units_pth")
+                units_pth=p_cfg["units_pth"],
+                value_key_pth=p_cfg["value_key_pth"]
             )
 
             providers.append(provider)
@@ -77,3 +85,26 @@ class YamlProviderLoader:
     def load_providers(self) -> List[Provider]:
         raw = self.load_yaml()
         return self.build_providers(raw)
+
+    @staticmethod
+    def build_auth(auth_cfg):
+        if not auth_cfg:
+            return None
+
+        env_var = auth_cfg["api_key_env"]
+        api_key = os.getenv(env_var)
+        if not api_key:
+            raise ValueError(f"Missing environment variable '{env_var}'")
+
+        t = auth_cfg["type"]
+
+        if t == "query":
+            return QueryAuth(param_name=auth_cfg["param"], api_key=api_key)
+
+        if t == "header":
+            return HeaderAuth(header_name=auth_cfg["header_name"], prefix=auth_cfg["prefix"], api_key=api_key)
+
+        if t == "authorization":
+            return AuthorizationAuth(prefix=auth_cfg["prefix"], api_key=api_key)
+
+        raise ValueError(f"Unknown auth type: {t}")

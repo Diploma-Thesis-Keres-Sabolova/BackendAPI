@@ -5,7 +5,14 @@ def main():
 
     load_dotenv("/app/.env")
 
+    #debbug purposes
+    #load_dotenv()
+
     loader = YamlProviderLoader("/app/DataGathering/providers.yaml")
+
+    #debbug purposes
+    #loader = YamlProviderLoader("providers.yaml")
+
     providers = loader.load_providers()
 
     for provider in providers:

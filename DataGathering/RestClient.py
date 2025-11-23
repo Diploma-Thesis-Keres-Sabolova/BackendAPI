@@ -4,6 +4,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from typing import Optional, Dict, Any, Union
 
+from AuthBase import AuthBase
+
 class RestClient:
     """
     class that handles communicatoin with REST APIs...
@@ -41,15 +43,27 @@ class RestClient:
             return path
         return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
 
+    @staticmethod
+    def _append_query_params(url: str, params: Dict[str, Any]) -> str:
+        if not params:
+            return url
+        from urllib.parse import urlencode
+        return url + ("&" if "?" in url else "?") + urlencode(params)
+
     def get(
         self,
         path: str,
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        auth: Optional[AuthBase] = None,
     ) -> Union[Dict, str]:
         """Makes GET request"""
         url = self._make_url(path)
+        params = params.copy() if params else {}
         merged_headers = {**self.default_headers, **(headers or {})}
+
+        if auth:
+            auth.apply(params, merged_headers)
 
         try:
             response = self.session.get(url, params=params, headers=merged_headers, timeout=self.timeout)
@@ -68,10 +82,18 @@ class RestClient:
         data: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        auth: Optional[AuthBase] = None,
     ) -> Union[Dict, str]:
         """Makes POST request"""
         url = self._make_url(path)
+
+        params = {}
         merged_headers = {**self.default_headers, **(headers or {})}
+
+        if auth:
+            auth.apply(params, merged_headers)
+
+        url = self._append_query_params(url, params)
 
         try:
             response = self.session.post(url, data=data, json=json, headers=merged_headers, timeout=self.timeout)
@@ -90,10 +112,18 @@ class RestClient:
         data: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
+        auth: Optional[AuthBase] = None,
     ) -> Union[Dict, str]:
         """Makes PUT request"""
         url = self._make_url(path)
+
+        params = {}
         merged_headers = {**self.default_headers, **(headers or {})}
+
+        if auth:
+            auth.apply(params, merged_headers)
+
+        url = self._append_query_params(url, params)
 
         try:
             response = self.session.put(
@@ -118,10 +148,19 @@ class RestClient:
         self,
         path: str,
         headers: Optional[Dict[str, str]] = None,
+        auth: Optional[AuthBase] = None,
     ) -> Union[Dict, str]:
         """Makes DELETE request"""
         url = self._make_url(path)
+
+        params = {}
         merged_headers = {**self.default_headers, **(headers or {})}
+
+        if auth:
+            auth.apply(params, merged_headers)
+
+        url = self._append_query_params(url, params)
+
 
         try:
             response = self.session.delete(url, headers=merged_headers, timeout=self.timeout)

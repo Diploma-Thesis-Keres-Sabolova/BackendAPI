@@ -1,9 +1,25 @@
 providers:
+  - name: OilPriceAPI
+    endpoint: "https://api.oilpriceapi.com/v1/prices/latest"
+    timestamp_pth: "data.prices.created_at"
+    data_pth: "data.prices"
+    units_pth: ""
+    value_key_pth: "data.prices.code"
+    params:
+      by_code: "WTI_USD,BRENT_CRUDE_USD"
+      fields: "name,price,currency,unit,timestamp"
+    auth:
+      type: authorization
+      prefix: "Token"
+      api_key_env: "OILPRICE_API_KEY"
+    description: "Fetches latest oil prices (WTI, Brent, etc.)"
+
   - name: OKTE_DAM
     endpoint: "https://isot.okte.sk/api/v1/dam/results"
     timestamp_pth: "deliveryStart"
     data_pth: ""
     units_pth: null
+    value_key_pth: null
     params:
       deliveryDayFrom: "{{today}}"
       deliveryDayTo: "{{today}}"
@@ -14,6 +30,7 @@ providers:
     timestamp_pth: "minutely_15.time"
     data_pth: "minutely_15"
     units_pth: "minutely_15_units"
+    value_key_pth: null
     params:
       latitude: 48.15
       longitude: 17.11
@@ -25,6 +42,7 @@ providers:
     timestamp_pth: "hourly.time"
     data_pth: "hourly"
     units_pth: "hourly_units"
+    value_key_pth: null
     params:
       latitude: 48.15
       longitude: 17.11

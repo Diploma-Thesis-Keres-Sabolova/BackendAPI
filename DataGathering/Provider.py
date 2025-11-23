@@ -4,22 +4,25 @@ from typing import Optional
 
 from DataClasses.ProviderInfo import ProviderInfo
 from DataClasses.RunInfo import RunInfo
+from AuthBase import AuthBase, HeaderAuth
 from RestClient import RestClient
 
 
 class Provider:
 
-    def __init__(self, name: str, endpoint: str, target_date: date, params: dict, description: Optional[str],
-                 timestamp_pth: str, data_pth: str, units_pth: Optional[str]):
+    def __init__(self, name: str, endpoint: str, endpoint_auth: Optional[AuthBase], target_date: date, params: dict,
+                 description: Optional[str], timestamp_pth: str, data_pth: str, units_pth: Optional[str], value_key_pth: Optional[str]):
         self.name = name
         self.rest_client = RestClient()
         self.endpoint = endpoint
+        self.endpoint_auth = endpoint_auth
         self.params = params
         self.description = description
         self.target_date = target_date
         self.timestamp_pth = timestamp_pth
         self.data_pth = data_pth
         self.units_pth = units_pth
+        self.value_key_pth = value_key_pth
         self.fast_api_base_url = os.getenv("FASTAPI_URL")
 
         if not self.fast_api_base_url:
@@ -30,12 +33,15 @@ class Provider:
         if not self.api_key:
             raise ValueError("self.api_key is not set in .env file")
 
+        self.fastapi_auth = HeaderAuth("X-API-Key", prefix=None, api_key=self.api_key)
+
     def fetch_data(self, extra_params: dict | None = None):
         params = self.params.copy()
         if extra_params:
             params.update(extra_params)
 
-        response = self.rest_client.get(self.endpoint, params=params)
+        response = self.rest_client.get(self.endpoint, params=params, auth=self.endpoint_auth)
+
         if not self.validate(response):
             raise ValueError("Invalid response from API")
         return response
@@ -102,70 +108,121 @@ class Provider:
         Detects whether the structure is row-based, column-based, table-based, or timeseries.
         """
 
-        # --- 1: ROW-BASED ---
-        # Example: [ { "ts": "...", "price": 1.2 }, {...} ]
+        # --- Placeholder-based multi-value structure ---
+        if getattr(self, "value_key_pth", None):
+            return self._normalize_placeholder(data)
+
+        # --- Row-based structure ---
         if isinstance(data, list) and data and isinstance(data[0], dict):
-            timestamp_key = self.timestamp_pth.split(".")[-1]
+            return self._normalize_row_based(data)
 
-            timestamps = [row.get(timestamp_key) for row in data]
-
-            values_dict = {}
-            for row in data:
-                for key, val in row.items():
-                    if key == timestamp_key:
-                        continue
-                    values_dict.setdefault(key, []).append(val)
-
-            return timestamps, values_dict
-
-        # --- 2: COLUMN-BASED ---
-        # Example: { "time": [...], "temperature": [...], "wind": [...] }
+        # --- Column-based structure ---
         if isinstance(data, dict) and all(isinstance(v, list) for v in data.values()):
-            timestamp_key = self.timestamp_pth.split(".")[-1]
-            timestamps = data.get(timestamp_key)
+            return self._normalize_column_based(data)
 
-            values_dict = {
-                key: lst for key, lst in data.items()
-                if key != timestamp_key
-            }
-
-            return timestamps, values_dict
-
-        # --- 3: TABLE FORMAT ---
-        # Example: { "headers": [...], "rows": [ [...], [...]] }
+        # --- Table-based structure ---
         if isinstance(data, dict) and "headers" in data and "rows" in data:
-            headers = data["headers"]
-            rows = data["rows"]
+            return self._normalize_table_based(data)
 
-            timestamp_index = headers.index(self.timestamp_pth)
-
-            timestamps = [row[timestamp_index] for row in rows]
-
-            values_dict = {h: [] for h in headers if h != self.timestamp_pth}
-
-            for row in rows:
-                for i, h in enumerate(headers):
-                    if i == timestamp_index:
-                        continue
-                    values_dict[h].append(row[i])
-
-            return timestamps, values_dict
-
-        # --- 4: TIMESERIES ---
-        # Example: { "2025-01-01T00": {"price": 1, "flow": 10}, ... }
+        # --- Timeseries structure ---
         if isinstance(data, dict) and all(isinstance(v, dict) for v in data.values()):
-            timestamps = list(data.keys())
-
-            sample = next(iter(data.values()))
-            values_dict = {key: [] for key in sample.keys()}
-
-            for ts, row in data.items():
-                for key, val in row.items():
-                    values_dict[key].append(val)
-
-            return timestamps, values_dict
+            return self._normalize_timeseries(data)
 
         raise ValueError("Unknown data structure, cannot normalize.")
+
+    def _normalize_placeholder(self, data):
+        """
+        Normalizes multi-value data using `value_key_pth`.
+        Works for lists of dicts or dicts, and prepends value_key to column names.
+        """
+        if not hasattr(self, "value_key_pth") or not self.value_key_pth:
+            raise ValueError("Missing 'value_key_pth' for placeholder normalization")
+
+        timestamps = []
+        values_dict = {}
+
+        items = self.get_by_path(data, self.data_pth)
+        if items is None:
+            raise ValueError(f"Data path '{self.data_pth}' not found in response")
+
+        if isinstance(items, dict):
+            items = list(items.values())
+        elif not isinstance(items, list):
+            raise ValueError(f"Expected list or dict at '{self.data_pth}'")
+
+        for item in items:
+            value_key = self.get_by_path(item, self.value_key_pth.split(".")[-1])
+            if value_key is None:
+                continue
+
+            ts = self.get_by_path(item, self.timestamp_pth.split(".")[-1])
+            if ts is None:
+                continue
+            timestamps.append(ts)
+
+            val_data = item
+            if isinstance(val_data, dict):
+                for k, v in val_data.items():
+                    if k in [self.value_key_pth.split(".")[-1], self.timestamp_pth.split(".")[-1]]:
+                        continue
+                    key_name = f"{value_key}_{k}"
+                    values_dict.setdefault(key_name, []).append(v)
+            else:
+                values_dict.setdefault(value_key, []).append(val_data)
+
+        return timestamps, values_dict
+
+    def _normalize_row_based(self, data):
+        """Normalizes row-based data: [ { 'ts': ..., 'price': ... }, ... ]"""
+        timestamp_key = self.timestamp_pth.split(".")[-1]
+        timestamps = [row.get(timestamp_key) for row in data]
+
+        values_dict = {}
+        for row in data:
+            for key, val in row.items():
+                if key == timestamp_key:
+                    continue
+                values_dict.setdefault(key, []).append(val)
+
+        return timestamps, values_dict
+
+    def _normalize_column_based(self, data):
+        """Normalizes column-based data: { 'time': [...], 'temperature': [...] }"""
+        timestamp_key = self.timestamp_pth.split(".")[-1]
+        timestamps = data.get(timestamp_key)
+
+        values_dict = {k: v for k, v in data.items() if k != timestamp_key}
+        return timestamps, values_dict
+
+    def _normalize_table_based(self, data):
+        """Normalizes table format: { 'headers': [...], 'rows': [...] }"""
+        headers = data["headers"]
+        rows = data["rows"]
+
+        timestamp_index = headers.index(self.timestamp_pth)
+        timestamps = [row[timestamp_index] for row in rows]
+
+        values_dict = {h: [] for h in headers if h != self.timestamp_pth}
+        for row in rows:
+            for i, h in enumerate(headers):
+                if i == timestamp_index:
+                    continue
+                values_dict[h].append(row[i])
+
+        return timestamps, values_dict
+
+    @staticmethod
+    def _normalize_timeseries(data):
+        """Normalizes timeseries format: { '2025-01-01': { 'price': 1, ... }, ... }"""
+        timestamps = list(data.keys())
+        sample = next(iter(data.values()))
+        values_dict = {key: [] for key in sample.keys()}
+
+        for ts, row in data.items():
+            for key, val in row.items():
+                values_dict[key].append(val)
+
+        return timestamps, values_dict
 
     def run(self):
         """Makes fetch, validate and save"""
@@ -180,7 +237,7 @@ class Provider:
                 "name": self.name,
                 "endpoint": self.endpoint
             },
-            headers={"X-API-Key": self.api_key}
+            auth=self.fastapi_auth
         )
 
         return [ProviderInfo(**p) for p in resp] if resp else []
@@ -192,7 +249,7 @@ class Provider:
                 "endpoint": self.endpoint,
                 "description": self.description,
             },
-            headers={"X-API-Key": self.api_key}
+            auth=self.fastapi_auth
         )
 
         return ProviderInfo(**resp)
@@ -209,7 +266,7 @@ class Provider:
                 "status": "STARTED",
                 "message": "Run initiated",
             },
-            headers={"X-API-Key": self.api_key}
+            auth=self.fastapi_auth
         )
 
         return RunInfo(**resp)
@@ -224,7 +281,7 @@ class Provider:
                 "value": str(val),
                 "unit": unit
             },
-            headers={"X-API-Key": self.api_key}
+            auth=self.fastapi_auth
         )
 
     def update_run(self, run_id: int, rows_num: int):
@@ -234,5 +291,5 @@ class Provider:
                 "status": "SUCCESS",
                 "message": f"Saved {rows_num} rows"
             },
-            headers={"X-API-Key": self.api_key}
+            auth=self.fastapi_auth
         )
