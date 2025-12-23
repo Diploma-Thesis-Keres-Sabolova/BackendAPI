@@ -34,7 +34,7 @@ services:
     depends_on:
       - db
     ports:
-      - "8000:8000"
+      - "${FASTAPI_PORT}:${FASTAPI_PORT}"
     networks:
       - app-network
     healthcheck:
@@ -62,7 +62,7 @@ services:
     container_name: ${CONTAINER_NAME}_pushgateway
     restart: always
     ports:
-      - "9091:9091"
+      - "${PUSHGATEWAY_PORT}:${PUSHGATEWAY_PORT}"
     networks:
       - app-network
 
@@ -73,7 +73,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
     networks:
       - app-network
 
@@ -82,7 +82,7 @@ services:
     container_name: ${CONTAINER_NAME}_grafana
     restart: always
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT}:${GRAFANA_PORT}"
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
