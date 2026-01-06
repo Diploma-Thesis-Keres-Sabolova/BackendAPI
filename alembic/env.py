@@ -18,10 +18,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("FAST_API_DB_URL")
 
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not set in .env file")
+    raise ValueError("FAST_API_DB_URL is not set in .env file")
 
 target_metadata = Base.metadata
 
