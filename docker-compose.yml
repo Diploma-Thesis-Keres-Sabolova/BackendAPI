@@ -92,6 +92,17 @@ services:
     networks:
       - app-network
 
+  nginx:
+    build:
+      context: ./nginx
+    container_name: backend_api_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - fastapi
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
