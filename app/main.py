@@ -31,6 +31,7 @@ async def lifespan(_app: FastAPI):
     logger.info("Fast API closed")
 
 app = FastAPI(
+    root_path=os.getenv("FATS_API_ROOT_PATH", "/api"),
     lifespan=lifespan,
     openapi_url="/openapi.json" if ENV != "production" else None,
     docs_url="/docs" if ENV != "production" else None,
