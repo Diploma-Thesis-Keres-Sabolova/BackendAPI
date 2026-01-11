@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import raw_data, providers, runs
+from app.api import raw_data, providers, runs, health
 import os
 import logging
 from dotenv import load_dotenv
@@ -43,6 +43,7 @@ app.add_middleware(RequestIdMiddleware, header_name="X-Request-ID")
 app.include_router(providers.router)
 app.include_router(runs.router)
 app.include_router(raw_data.router)
+app.include_router(health.router)
 
 
 if __name__ == "__main__":
