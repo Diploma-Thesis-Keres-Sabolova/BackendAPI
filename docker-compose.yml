@@ -100,8 +100,8 @@ services:
     healthcheck:
       test: >
         sh -c "
-          curl -f -k -L https://localhost/api/health/ &&
-          curl -f -k -L https://localhost/grafana/ || exit 1
+          curl -f http://fastapi:8000/health/ &&
+          curl -f -L http://grafana:3000/grafana/ || exit 1
         "
       interval: 30s
       timeout: 10s
