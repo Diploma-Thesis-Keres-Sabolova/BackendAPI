@@ -4,7 +4,9 @@ from typing import List
 
 from app.database import get_db
 from app.dependencies.auth import get_api_key
+from app.dependencies.provider_get_filters import ProviderFilter
 from app.models.Provider import Provider
+from app.repositories.provider_repository import apply_provider_filters
 from app.schemas.ProviderSchema import ProviderResponse, ProviderCreate, ProviderUpdate
 
 router = APIRouter(
@@ -14,15 +16,12 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[ProviderResponse])
-def read_providers(name: str | None = None, endpoint: str | None = None, params: str | None = None, db: Session = Depends(get_db)):
+def read_providers(
+    filters: ProviderFilter = Depends(),
+    db: Session = Depends(get_db),
+):
     query = db.query(Provider)
-    if name:
-        query = query.filter(Provider.name == name)
-    if endpoint:
-        query = query.filter(Provider.endpoint == endpoint)
-    if params:
-        query = query.filter(Provider.params == params)
-
+    query = apply_provider_filters(query, filters)
     return query.all()
 
 @router.post("/", response_model=ProviderResponse)

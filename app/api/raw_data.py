@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
 from app.dependencies.auth import get_api_key
+from app.dependencies.raw_data_get_filters import RawDataFilter
 from app.models.RawData import RawData
+from app.repositories.raw_data_repository import apply_raw_data_filters
 from app.schemas.RawDataSchema import RawDataResponse, RawDataCreate, RawDataUpdate
 
 router = APIRouter(
@@ -14,8 +16,22 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[RawDataResponse])
-def read_weather(limit: int = 10, db: Session = Depends(get_db)):
-    return db.query(RawData).all()
+def read_raw_data(
+    filters: RawDataFilter = Depends(),
+    db: Session = Depends(get_db),
+    limit: int = Query(100, le=1000),
+    offset: int = Query(0),
+):
+    query = db.query(RawData)
+    query = apply_raw_data_filters(query, filters)
+
+    return (
+        query
+        .order_by(RawData.timestamp.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
 @router.post("/", response_model=RawDataResponse)
 def create_raw_data(raw_data: RawDataCreate, db: Session = Depends(get_db)):
