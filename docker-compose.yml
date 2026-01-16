@@ -52,6 +52,11 @@ services:
     restart: "on-failure"
     env_file:
       - .env
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      LOG_LEVEL: INFO
+      LOG_DIR: /app/logs
     depends_on:
       - fastapi
     networks:
