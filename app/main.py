@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import raw_data, providers, runs, health
+from app.api import raw_data, providers, runs, health, processed_data
 import os
 import logging
 from dotenv import load_dotenv
@@ -44,6 +44,7 @@ app.include_router(providers.router)
 app.include_router(runs.router)
 app.include_router(raw_data.router)
 app.include_router(health.router)
+app.include_router(processed_data.router)
 
 
 if __name__ == "__main__":
