@@ -27,7 +27,7 @@ def read_raw_data(
 
     return (
         query
-        .order_by(RawData.timestamp.desc())
+        .order_by(RawData.created_at.desc())
         .offset(offset)
         .limit(limit)
         .all()

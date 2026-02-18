@@ -1,15 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 from .CustomBaseModel import CustomBaseModel
-
 
 class RawDataResponse(CustomBaseModel):
     id: int
     run_id: int
-    timestamp: datetime
-    name: str
-    value: Optional[str] = None
-    unit: Optional[str] = None
+    data: Dict[str, Any]
     created_at: datetime
 
     class Config(CustomBaseModel.Config):
@@ -17,24 +13,16 @@ class RawDataResponse(CustomBaseModel):
 
 
 class RawDataInRun(CustomBaseModel):
-    name: str
-    value: Optional[str]
-    unit: Optional[str]
-    timestamp: datetime
+    id: int
+    data: Dict[str, Any]
 
     class Config(CustomBaseModel.Config):
         from_attributes = True
 
 class RawDataCreate(CustomBaseModel):
     run_id: int
-    timestamp: datetime
-    name: str
-    value: Optional[str] = None
-    unit: Optional[str] = None
+    data: Dict[str, Any]
 
 
 class RawDataUpdate(CustomBaseModel):
-    timestamp: Optional[datetime] = None
-    name: Optional[str] = None
-    value: Optional[str] = None
-    unit: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
