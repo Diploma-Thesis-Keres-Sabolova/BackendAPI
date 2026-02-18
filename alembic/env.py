@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from app.models.Base import Base
 from app.models.Provider import Provider
 from app.models.Run import Run
+from app.models.ProcessedData import ProcessedData
 from app.models.RawData import RawData
 
 config = context.config
