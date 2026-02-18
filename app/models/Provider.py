@@ -6,7 +6,7 @@ class Provider(Base):
     __tablename__ = "provider"
     __table_args__ = (
         UniqueConstraint("name", "endpoint", name="uq_provider_unique"),
-        {"schema": "raw_data"}
+        {"schema": "core"}
     )
 
     id = Column(Integer, primary_key=True)

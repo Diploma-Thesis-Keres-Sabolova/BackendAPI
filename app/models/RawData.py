@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, String
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from .Base import Base
 
 
@@ -9,11 +10,8 @@ class RawData(Base):
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("raw_data.run.id"), nullable=False)
-    timestamp = Column(DateTime, nullable=False)
-    name = Column(String, nullable=False)
-    value = Column(String, nullable=True)
-    unit = Column(String, nullable=True)
+    data = Column(JSONB, nullable=False)
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
-    run = relationship("Run", back_populates="data")
+    run = relationship("Run", back_populates="raw_data")

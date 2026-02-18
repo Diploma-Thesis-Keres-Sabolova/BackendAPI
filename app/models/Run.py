@@ -5,10 +5,10 @@ from .Base import Base
 
 class Run(Base):
     __tablename__ = "run"
-    __table_args__ = {"schema": "raw_data"}
+    __table_args__ = {"schema": "core"}
 
     id = Column(Integer, primary_key=True)
-    provider_id = Column(Integer, ForeignKey("raw_data.provider.id"), nullable=False)
+    provider_id = Column(Integer, ForeignKey("core.provider.id"), nullable=False)
     run_timestamp = Column(DateTime, server_default=func.now(), nullable=False)
     params = Column(Text, nullable=True)
     data_type = Column(String, nullable=False)
@@ -17,4 +17,5 @@ class Run(Base):
     message = Column(String, nullable=False)
 
     provider = relationship("Provider", back_populates="runs")
-    data = relationship("RawData", back_populates="run", cascade="all, delete-orphan")
+    proc_data = relationship("ProcessedData", back_populates="run", cascade="all, delete-orphan")
+    raw_data = relationship("RawData", back_populates="run", cascade="all, delete-orphan")
