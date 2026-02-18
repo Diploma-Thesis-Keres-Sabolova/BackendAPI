@@ -9,7 +9,7 @@ class RawData(Base):
     __table_args__ = {"schema": "raw_data"}
 
     id = Column(Integer, primary_key=True)
-    run_id = Column(Integer, ForeignKey("raw_data.run.id"), nullable=False)
+    run_id = Column(Integer, ForeignKey("core.run.id"), nullable=False)
     data = Column(JSONB, nullable=False)
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
