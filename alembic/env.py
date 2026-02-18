@@ -45,6 +45,7 @@ def run_migrations_online():
     with engine.begin() as connection:
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS raw_data'))
         connection.execute(text('CREATE SCHEMA IF NOT EXISTS processed_data'))
+        connection.execute(text('CREATE SCHEMA IF NOT EXISTS core'))
 
         context.configure(
             connection=connection,
