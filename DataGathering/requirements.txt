@@ -3,3 +3,4 @@ requests
 python-dotenv
 PyYAML
 prometheus-client==0.20.0
+pika==1.3.2
