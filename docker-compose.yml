@@ -59,6 +59,7 @@ services:
       LOG_DIR: /app/logs
     depends_on:
       - fastapi
+      - rabbitmq
     networks:
       - app-network
 
@@ -111,6 +112,41 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: ${CONTAINER_NAME}_rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_MANAGEMENT_PATH_PREFIX=/rabbitmq
+    networks:
+      - app-network
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: DataGathering/Dockerfile
+    container_name: ${CONTAINER_NAME}_worker
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      fastapi:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/app
+    networks:
+      - app-network
+    command: [ "python", "/app/DataGathering/worker.py" ]
 
 
 volumes:

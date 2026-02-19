@@ -1,4 +1,6 @@
+import json
 import os
+import pika
 from datetime import date, datetime
 from typing import Optional
 
@@ -24,7 +26,6 @@ class Provider:
         self.units_pth = units_pth
         self.value_key_pth = value_key_pth
         self.fast_api_base_url = os.getenv("FASTAPI_URL")
-        self.rows_saved = 0
 
         if not self.fast_api_base_url:
             raise ValueError("self.fast_api_base_url is not set in .env file")
@@ -63,168 +64,42 @@ class Provider:
 
         run_id = self.create_run(provider_id, self.target_date).id
 
-        timestamps = self.get_by_path(data, self.timestamp_pth)
+        self.create_raw_data(run_id, data)
 
-        values_dict = self.get_by_path(data, self.data_pth)
+        self.update_run(run_id)
 
-        if self.units_pth:
-            units_dict = self.get_by_path(data, self.units_pth)
-        else:
-            units_dict = {}
+        self.send_to_queue(run_id)
 
-        if not timestamps:
-            timestamps, values_dict = self.normalize_data(data)
+    def send_to_queue(self, run_id: int):
+        rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
+        queue_name = "data_processing_queue"
 
-        timestamp_key = self.timestamp_pth.split(".")[-1]
-        for i, ts in enumerate(timestamps):
-            for key, val_list in values_dict.items():
-                if key == timestamp_key:
-                    continue
-
-                val = val_list[i] if i < len(val_list) else None
-                if val is None:
-                    continue
-
-                unit = units_dict.get(key) if units_dict else None
-                self.create_raw_data(run_id, ts, key, val, unit)
-
-        self.update_run(run_id, len(timestamps))
-        self.rows_saved = len(timestamps)
-        print(f"✅ Saved {len(timestamps)} rows of raw data (run={run_id}, provider={provider_id})")
-
-    @staticmethod
-    def get_by_path(obj, path: str):
         try:
-            for p in path.split("."):
-                if p.isdigit():
-                    obj = obj[int(p)]
-                else:
-                    obj = obj[p]
-            return obj
-        except (KeyError, IndexError, TypeError):
-            return None
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+            channel = connection.channel()
+            channel.queue_declare(queue=queue_name, durable=True)
 
-    def normalize_data(self, data):
-        """
-        Returns (timestamps, values_dict) in universal columnar format.
-        Detects whether the structure is row-based, column-based, table-based, or timeseries.
-        """
+            message_body = {
+                "run_id": run_id,
+                "provider_id": self.get_provider()[0].id,
+                "timestamp_pth": self.timestamp_pth,
+                "data_pth": self.data_pth,
+                "units_pth": self.units_pth,
+                "value_key_pth": self.value_key_pth,
+                "target_date": self.target_date.isoformat()
+            }
 
-        # --- Placeholder-based multi-value structure ---
-        if getattr(self, "value_key_pth", None):
-            return self._normalize_placeholder(data)
-
-        # --- Row-based structure ---
-        if isinstance(data, list) and data and isinstance(data[0], dict):
-            return self._normalize_row_based(data)
-
-        # --- Column-based structure ---
-        if isinstance(data, dict) and all(isinstance(v, list) for v in data.values()):
-            return self._normalize_column_based(data)
-
-        # --- Table-based structure ---
-        if isinstance(data, dict) and "headers" in data and "rows" in data:
-            return self._normalize_table_based(data)
-
-        # --- Timeseries structure ---
-        if isinstance(data, dict) and all(isinstance(v, dict) for v in data.values()):
-            return self._normalize_timeseries(data)
-
-        raise ValueError("Unknown data structure, cannot normalize.")
-
-    def _normalize_placeholder(self, data):
-        """
-        Normalizes multi-value data using `value_key_pth`.
-        Works for lists of dicts or dicts, and prepends value_key to column names.
-        """
-        if not hasattr(self, "value_key_pth") or not self.value_key_pth:
-            raise ValueError("Missing 'value_key_pth' for placeholder normalization")
-
-        timestamps = []
-        values_dict = {}
-
-        items = self.get_by_path(data, self.data_pth)
-        if items is None:
-            raise ValueError(f"Data path '{self.data_pth}' not found in response")
-
-        if isinstance(items, dict):
-            items = list(items.values())
-        elif not isinstance(items, list):
-            raise ValueError(f"Expected list or dict at '{self.data_pth}'")
-
-        for item in items:
-            value_key = self.get_by_path(item, self.value_key_pth.split(".")[-1])
-            if value_key is None:
-                continue
-
-            ts = self.get_by_path(item, self.timestamp_pth.split(".")[-1])
-            if ts is None:
-                continue
-            timestamps.append(ts)
-
-            val_data = item
-            if isinstance(val_data, dict):
-                for k, v in val_data.items():
-                    if k in [self.value_key_pth.split(".")[-1], self.timestamp_pth.split(".")[-1]]:
-                        continue
-                    key_name = f"{value_key}_{k}"
-                    values_dict.setdefault(key_name, []).append(v)
-            else:
-                values_dict.setdefault(value_key, []).append(val_data)
-
-        return timestamps, values_dict
-
-    def _normalize_row_based(self, data):
-        """Normalizes row-based data: [ { 'ts': ..., 'price': ... }, ... ]"""
-        timestamp_key = self.timestamp_pth.split(".")[-1]
-        timestamps = [row.get(timestamp_key) for row in data]
-
-        values_dict = {}
-        for row in data:
-            for key, val in row.items():
-                if key == timestamp_key:
-                    continue
-                values_dict.setdefault(key, []).append(val)
-
-        return timestamps, values_dict
-
-    def _normalize_column_based(self, data):
-        """Normalizes column-based data: { 'time': [...], 'temperature': [...] }"""
-        timestamp_key = self.timestamp_pth.split(".")[-1]
-        timestamps = data.get(timestamp_key)
-
-        values_dict = {k: v for k, v in data.items() if k != timestamp_key}
-        return timestamps, values_dict
-
-    def _normalize_table_based(self, data):
-        """Normalizes table format: { 'headers': [...], 'rows': [...] }"""
-        headers = data["headers"]
-        rows = data["rows"]
-
-        timestamp_index = headers.index(self.timestamp_pth)
-        timestamps = [row[timestamp_index] for row in rows]
-
-        values_dict = {h: [] for h in headers if h != self.timestamp_pth}
-        for row in rows:
-            for i, h in enumerate(headers):
-                if i == timestamp_index:
-                    continue
-                values_dict[h].append(row[i])
-
-        return timestamps, values_dict
-
-    @staticmethod
-    def _normalize_timeseries(data):
-        """Normalizes timeseries format: { '2025-01-01': { 'price': 1, ... }, ... }"""
-        timestamps = list(data.keys())
-        sample = next(iter(data.values()))
-        values_dict = {key: [] for key in sample.keys()}
-
-        for ts, row in data.items():
-            for key, val in row.items():
-                values_dict[key].append(val)
-
-        return timestamps, values_dict
+            channel.basic_publish(
+                exchange='',
+                routing_key=queue_name,
+                body=json.dumps(message_body),
+                properties=pika.BasicProperties(
+                    delivery_mode=2,  # make message persistent
+                )
+            )
+            connection.close()
+        except Exception as e:
+            raise ValueError(f"Failed to send to queue: {e}")
 
     def run(self):
         """Makes fetch, validate and save"""
@@ -273,25 +148,22 @@ class Provider:
 
         return RunInfo(**resp)
 
-    def create_raw_data(self, run_id: int, ts: datetime, key: str, val: str, unit: Optional[str]):
+    def create_raw_data(self, run_id: int, data):
         self.rest_client.post(
             f"{self.fast_api_base_url}/raw_data/",
             json={
                 "run_id": run_id,
-                "timestamp": ts,
-                "name": key,
-                "value": str(val),
-                "unit": unit
+                "data": data
             },
             auth=self.fastapi_auth
         )
 
-    def update_run(self, run_id: int, rows_num: int):
+    def update_run(self, run_id: int):
         self.rest_client.put(
             f"{self.fast_api_base_url}/run/{run_id}",
             json={
-                "status": "SUCCESS",
-                "message": f"Saved {rows_num} rows"
+                "status": "SUCCESS RAW",
+                "message": f"Saved raw data"
             },
             auth=self.fastapi_auth
         )
