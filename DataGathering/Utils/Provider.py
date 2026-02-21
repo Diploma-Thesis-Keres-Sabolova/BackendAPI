@@ -82,6 +82,7 @@ class Provider:
             message_body = {
                 "run_id": run_id,
                 "provider_id": self.get_provider()[0].id,
+                "provider_name": self.name,
                 "timestamp_pth": self.timestamp_pth,
                 "data_pth": self.data_pth,
                 "units_pth": self.units_pth,

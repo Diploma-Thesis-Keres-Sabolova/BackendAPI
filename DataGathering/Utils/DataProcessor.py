@@ -3,8 +3,14 @@ import os
 import time
 
 import pika
-from datetime import date, datetime
+import logging
+from datetime import datetime
 from typing import Optional
+from pika.exceptions import AMQPConnectionError
+
+
+from .Logger import setup_logging
+from .MetricsProvider import MetricsManager
 from .RestClient import RestClient
 from .AuthBase import HeaderAuth
 from DataGathering.DataClasses.ProviderInfo import ProviderInfo
@@ -16,6 +22,7 @@ class DataProcessor:
     def __init__(self):
         self.run_id = None
         self.provider_id = None
+        self.provider_name = None
         self.timestamp_pth = None
         self.data_pth = None
         self.units_pth = None
@@ -26,16 +33,26 @@ class DataProcessor:
         self.rabbitmq_host = os.getenv("RABBITMQ_HOST")
         self.queue_name = "data_processing_queue"
 
+        setup_logging()
+        self.logger = logging.getLogger("data-processing")
+
+        pushgateway_url = os.getenv("PUSHGATEWAY_URL")
+        if pushgateway_url:
+            self.metrics = MetricsManager(pushgateway_url, "DP")
+        else:
+            self.metrics = None
+            self.logger.exception("PUSHGATEWAY_URL not set, metrics disabled")
+
         if not self.rabbitmq_host:
-            raise ValueError("self.rabbitmq_host is not set in .env file")
+            self.logger.exception("self.rabbitmq_host is not set in .env file")
 
         if not self.fast_api_base_url:
-            raise ValueError("self.fast_api_base_url is not set in .env file")
+            self.logger.exception("self.fast_api_base_url is not set in .env file")
 
         self.api_key = os.getenv("API_KEY")
 
         if not self.api_key:
-            raise ValueError("self.api_key is not set in .env file")
+            self.logger.exception("self.api_key is not set in .env file")
 
         self.fastapi_auth = HeaderAuth("X-API-Key", prefix=None, api_key=self.api_key)
 
@@ -56,10 +73,14 @@ class DataProcessor:
 
     def process_queue_message(self, ch, method, properties, body):
         """Callback function triggered when a message is received"""
+        self.clear_attributes()
+        duration = 0
         try:
+            start_time = time.time()
             message = json.loads(body)
             self.run_id = message['run_id']
             self.provider_id = message['provider_id']
+            self.provider_name = message.get('provider_name', f"provider_{message.get('provider_id', 'unknown')}")
             self.timestamp_pth = message['timestamp_pth']
             self.data_pth = message['data_pth']
             self.units_pth = message['units_pth']
@@ -68,20 +89,28 @@ class DataProcessor:
             raw_data = self.get_raw_data()
 
             if raw_data:
+                self.logger.info(f"Processing Run ID: {self.run_id} for {self.provider_name}")
                 self.save(raw_data)
+
+            duration = time.time() - start_time
+
+            if self.metrics:
+                self.metrics.record_success(self.provider_name, self.rows_saved, duration)
+                self.metrics.push_dp()
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
-            print(f" [!] Error processing message: {e}")
+            self.logger.exception(f"Error processing message: {e}")
+            if self.metrics:
+                self.metrics.record_failure(self.provider_name, self.rows_saved, duration)
+                self.metrics.push_dp()
 
     def save(self, data) -> None:
         provider_list = self.get_provider()
 
         if not provider_list:
             raise ValueError("Provider does not exist")
-        else:
-            provider_id = provider_list[0].id
 
         run_list = self.get_run()
 
@@ -312,3 +341,12 @@ class DataProcessor:
             },
             auth=self.fastapi_auth
         )
+
+    def clear_attributes(self):
+        self.run_id = None
+        self.provider_id = None
+        self.provider_name = None
+        self.timestamp_pth = None
+        self.data_pth = None
+        self.units_pth = None
+        self.value_key_pth = None
