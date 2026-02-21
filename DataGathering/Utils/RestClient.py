@@ -103,8 +103,7 @@ class RestClient:
             except ValueError:
                 return response.text
         except requests.RequestException as e:
-            print(f"[RestClient] POST {url} failed: {e}")
-            raise
+            raise ValueError(f"[RestClient] POST {url} failed: {e}")
 
     def put(
         self,
@@ -141,8 +140,7 @@ class RestClient:
                 return response.text
 
         except requests.RequestException as e:
-            print(f"[RestClient] PUT {url} failed: {e}")
-            raise
+            raise ValueError(f"[RestClient] PUT {url} failed: {e}")
 
     def delete(
         self,
@@ -172,5 +170,4 @@ class RestClient:
                 return response.text
 
         except requests.RequestException as e:
-            print(f"[RestClient] DELETE {url} failed: {e}")
-            raise
+            raise ValueError(f"[RestClient] DELETE {url} failed: {e}")
