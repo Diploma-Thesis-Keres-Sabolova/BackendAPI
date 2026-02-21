@@ -11,14 +11,13 @@ def main():
     load_dotenv("/app/.env")
 
     setup_logging()
-
     logger = logging.getLogger("data-gathering")
 
     loader = YamlProviderLoader("/app/DataGathering/providers.yaml")
 
     pushgateway_url = os.getenv("PUSHGATEWAY_URL")
 
-    metrics = MetricsManager(pushgateway_url)
+    metrics = MetricsManager(pushgateway_url, "DG")
     providers = loader.load_providers()
 
     logger.info("Job started")
@@ -29,23 +28,16 @@ def main():
 
         try:
             provider.run()
-
-            metrics.success(provider.name, provider.rows_saved)
-
-            logger.info(
-                f"Provider {provider.name} finished successfully "
-                f"(rows_saved={provider.rows_saved})"
-            )
-
+            metrics.success(provider.name)
         except Exception as e:
             logger.exception(f"Provider {provider.name} failed : error {e}")
             metrics.failure(provider.name)
 
     try:
-        metrics.push()
-        logger.info("Metrics pushed to Pushgateway")
+        metrics.push_dg()
+        logger.info("Metrics from DG pushed to Pushgateway")
     except Exception as e:
-        logger.exception(f"Failed to push metrics to Pushgateway : error {e}")
+        logger.exception(f"Failed to push DG metrics to Pushgateway : error {e}")
 
     logger.info("Job finished")
 
