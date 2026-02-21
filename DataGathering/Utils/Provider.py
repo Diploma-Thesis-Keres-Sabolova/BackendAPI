@@ -95,7 +95,7 @@ class Provider:
                 routing_key=queue_name,
                 body=json.dumps(message_body),
                 properties=pika.BasicProperties(
-                    delivery_mode=2,  # make message persistent
+                    delivery_mode=2,
                 )
             )
             connection.close()

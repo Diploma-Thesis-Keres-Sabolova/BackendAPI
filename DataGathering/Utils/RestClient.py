@@ -73,8 +73,7 @@ class RestClient:
             except ValueError:
                 return response.text
         except requests.RequestException as e:
-            print(f"[RestClient] GET {url} failed: {e}")
-            raise
+            raise ValueError(f"[RestClient] GET {url} failed: {e}")
 
     def post(
         self,

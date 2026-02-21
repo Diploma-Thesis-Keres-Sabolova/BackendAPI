@@ -24,10 +24,10 @@ def main():
 
     for provider in providers:
         logger.info(f"Starting provider: {provider.name}")
-        metrics.start(provider.name)
 
         try:
             provider.run()
+            metrics.start(provider.name)
             metrics.success(provider.name)
         except Exception as e:
             logger.exception(f"Provider {provider.name} failed : error {e}")

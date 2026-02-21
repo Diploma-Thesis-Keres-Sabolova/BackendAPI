@@ -7,5 +7,5 @@ from typing import Dict, Any
 class RawDataInfo:
     id: int
     run_id: int
-    data: Dict[str, Any]
+    data: Any
     created_at: datetime
