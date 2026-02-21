@@ -86,11 +86,11 @@ class DataProcessor:
             self.units_pth = message['units_pth']
             self.value_key_pth = message['value_key_pth']
 
-            raw_data = self.get_raw_data()
-
-            if raw_data:
+            raw_data_list = self.get_raw_data()
+            if raw_data_list:
+                raw_data = raw_data_list[0]
                 self.logger.info(f"Processing Run ID: {self.run_id} for {self.provider_name}")
-                self.save(raw_data)
+                self.save(raw_data.data)
 
             duration = time.time() - start_time
 
