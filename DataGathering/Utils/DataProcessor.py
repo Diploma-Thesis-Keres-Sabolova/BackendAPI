@@ -321,7 +321,7 @@ class DataProcessor:
 
     def create_processed_data(self, run_id: int, ts: datetime, key: str, val: str, unit: Optional[str]):
         self.rest_client.post(
-            f"{self.fast_api_base_url}/raw_data/",
+            f"{self.fast_api_base_url}/processed_data_data/",
             json={
                 "run_id": run_id,
                 "timestamp": ts,
