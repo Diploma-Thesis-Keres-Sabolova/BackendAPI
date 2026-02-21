@@ -58,8 +58,10 @@ class MetricsManager:
         self.saved_rows_total.labels(provider=provider).inc(rows)
         self.processing_duration.labels(provider=provider).observe(duration)
 
-    def record_failure(self, provider: str, duration: float):
+    def record_failure(self, provider: str, rows: int, duration: float):
         self.processing_ops_total.labels(provider=provider, status="error").inc()
+        self.processing_ops_total.labels(provider=provider, status="success").inc()
+        self.saved_rows_total.labels(provider=provider).inc(rows)
         self.processing_duration.labels(provider=provider).observe(duration)
 
 
