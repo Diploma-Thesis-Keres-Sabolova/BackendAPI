@@ -32,6 +32,8 @@ class DataProcessor:
         self.rows_saved = 0
         self.rabbitmq_host = os.getenv("RABBITMQ_HOST")
         self.queue_name = "data_processing_queue"
+        self.rabbitmq_user = os.getenv("RABBITMQ_USER", "guest")
+        self.rabbitmq_pass = os.getenv("RABBITMQ_PASSWORD", "guest")
 
         setup_logging()
         self.logger = logging.getLogger("data-processing")
@@ -58,9 +60,10 @@ class DataProcessor:
 
     def start_worker(self):
         """Starts the worker loop"""
+        credentials = pika.PlainCredentials(self.rabbitmq_user, self.rabbitmq_pass)
         while True:
             try:
-                connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.rabbitmq_host))
+                connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.rabbitmq_host, credentials=credentials))
                 channel = connection.channel()
                 channel.queue_declare(queue=self.queue_name, durable=True)
 

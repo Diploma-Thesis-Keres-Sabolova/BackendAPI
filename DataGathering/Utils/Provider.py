@@ -74,8 +74,12 @@ class Provider:
         rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
         queue_name = "data_processing_queue"
 
+        rabbitmq_user = os.getenv("RABBITMQ_USER", "guest")
+        rabbitmq_pass = os.getenv("RABBITMQ_PASSWORD", "guest")
+
         try:
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host))
+            credentials = pika.PlainCredentials(rabbitmq_user, rabbitmq_pass)
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=rabbitmq_host, credentials=credentials))
             channel = connection.channel()
             channel.queue_declare(queue=queue_name, durable=True)
 
