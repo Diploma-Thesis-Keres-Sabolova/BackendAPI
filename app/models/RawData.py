@@ -11,7 +11,7 @@ class RawData(Base):
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("core.run.id"), nullable=False)
     data = Column(Text, nullable=False)
-    data_format = Column(Text, nullable=False)
+    data_format = Column(Text, nullable=True)
 
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
