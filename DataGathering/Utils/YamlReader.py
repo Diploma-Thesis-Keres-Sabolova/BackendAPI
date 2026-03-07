@@ -14,7 +14,7 @@ class YamlProviderLoader:
     applies template substitutions, and returns Provider objects.
     """
 
-    REQUIRED_FIELDS = ["name", "endpoint", "timestamp_pth", "data_pth", "description"]
+    REQUIRED_FIELDS = ["name", "endpoint", "timestamp_pth", "data_pth", "description", "file_format"]
 
     def __init__(self, path: str):
         self.path = path
@@ -75,7 +75,8 @@ class YamlProviderLoader:
                 timestamp_pth=p_cfg["timestamp_pth"],
                 data_pth=p_cfg["data_pth"],
                 units_pth=p_cfg["units_pth"],
-                value_key_pth=p_cfg["value_key_pth"]
+                value_key_pth=p_cfg["value_key_pth"],
+                file_format=p_cfg["file_format"]
             )
 
             providers.append(provider)

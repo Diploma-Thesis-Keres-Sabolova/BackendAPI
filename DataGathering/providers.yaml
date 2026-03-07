@@ -5,6 +5,7 @@ providers:
     data_pth: "data.prices"
     units_pth: ""
     value_key_pth: "data.prices.code"
+    format: "json"
     params:
       by_code: "WTI_USD,BRENT_CRUDE_USD"
       fields: "name,price,currency,unit,timestamp"
@@ -20,6 +21,7 @@ providers:
     data_pth: ""
     units_pth: null
     value_key_pth: null
+    format: "json"
     params:
       deliveryDayFrom: "{{today}}"
       deliveryDayTo: "{{today}}"
@@ -31,6 +33,7 @@ providers:
     data_pth: "minutely_15"
     units_pth: "minutely_15_units"
     value_key_pth: null
+    format: "json"
     params:
       latitude: 48.15
       longitude: 17.11
@@ -43,6 +46,7 @@ providers:
     data_pth: "hourly"
     units_pth: "hourly_units"
     value_key_pth: null
+    format: "json"
     params:
       latitude: 48.15
       longitude: 17.11
