@@ -1,0 +1,12 @@
+{
+  "latitude": 48.15,
+  "hourly": {
+    "time": ["2024-03-01T12:00", "2024-03-01T13:00"],
+    "temperature_2m": [10.5, 11.2],
+    "rain": [0.0, 0.1]
+  },
+  "hourly_units": {
+    "temperature_2m": "C",
+    "rain": "mm"
+  }
+}
