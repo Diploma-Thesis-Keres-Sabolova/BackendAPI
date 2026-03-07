@@ -27,6 +27,7 @@ class DataProcessor:
         self.data_pth = None
         self.units_pth = None
         self.value_key_pth = None
+        self.file_format = None
         self.rest_client = RestClient()
         self.fast_api_base_url = os.getenv("FASTAPI_URL")
         self.rows_saved = 0
@@ -88,12 +89,24 @@ class DataProcessor:
             self.data_pth = message['data_pth']
             self.units_pth = message['units_pth']
             self.value_key_pth = message['value_key_pth']
+            self.file_format = message['file_format']
 
             raw_data_list = self.get_raw_data()
             if raw_data_list:
-                raw_data = raw_data_list[0]
-                self.logger.info(f"Processing Run ID: {self.run_id} for {self.provider_name}")
-                self.save(raw_data.data)
+                raw_data_obj = raw_data_list[0]
+
+                content = raw_data_obj.data
+
+                if self.file_format == "json":
+                    try:
+                        parsed_data = json.loads(content)
+                    except json.JSONDecodeError:
+                        self.logger.warning(f"Data for {self.provider_name} is not valid JSON. Treating as raw text.")
+                        parsed_data = content
+
+                    self.logger.info(f"Processing Run ID: {self.run_id} for {self.provider_name}")
+                    self.save_json(parsed_data)
+
 
             duration = time.time() - start_time
 
@@ -109,7 +122,7 @@ class DataProcessor:
                 self.metrics.record_failure(self.provider_name, self.rows_saved, duration)
                 self.metrics.push_dp()
 
-    def save(self, data) -> None:
+    def save_json(self, data) -> None:
         provider_list = self.get_provider()
 
         if not provider_list:
@@ -353,3 +366,4 @@ class DataProcessor:
         self.data_pth = None
         self.units_pth = None
         self.value_key_pth = None
+        self.file_format = None

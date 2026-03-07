@@ -13,5 +13,7 @@ def apply_raw_data_filters(query: Query, filters: RawDataFilter) -> Query:
         query = query.filter(RawData.created_at >= filters.created_from)
     if filters.created_to:
         query = query.filter(RawData.created_at <= filters.created_to)
+    if filters.data_format:
+        query = query.filter(RawData.data_format >= filters.data_format)
 
     return query

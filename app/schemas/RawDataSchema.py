@@ -6,6 +6,7 @@ class RawDataResponse(CustomBaseModel):
     id: int
     run_id: int
     data: Any
+    format: str = None
     created_at: datetime
 
     class Config(CustomBaseModel.Config):
@@ -15,6 +16,7 @@ class RawDataResponse(CustomBaseModel):
 class RawDataInRun(CustomBaseModel):
     id: int
     data: Any
+    format: str = None
 
     class Config(CustomBaseModel.Config):
         from_attributes = True
@@ -22,7 +24,9 @@ class RawDataInRun(CustomBaseModel):
 class RawDataCreate(CustomBaseModel):
     run_id: int
     data: Any
+    format: str = None
 
 
 class RawDataUpdate(CustomBaseModel):
     data: Any = None
+    format: str = None

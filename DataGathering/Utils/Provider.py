@@ -13,7 +13,7 @@ from .RestClient import RestClient
 class Provider:
 
     def __init__(self, name: str, endpoint: str, endpoint_auth: Optional[AuthBase], target_date: date, params: dict,
-                 description: Optional[str], timestamp_pth: str, data_pth: str, units_pth: Optional[str], value_key_pth: Optional[str]):
+                 description: Optional[str], timestamp_pth: str, data_pth: str, units_pth: Optional[str], value_key_pth: Optional[str], file_format: Optional[str]) -> None:
         self.name = name
         self.rest_client = RestClient()
         self.endpoint = endpoint
@@ -25,6 +25,7 @@ class Provider:
         self.data_pth = data_pth
         self.units_pth = units_pth
         self.value_key_pth = value_key_pth
+        self.file_format = file_format
         self.fast_api_base_url = os.getenv("FASTAPI_URL")
 
         if not self.fast_api_base_url:
@@ -154,11 +155,16 @@ class Provider:
         return RunInfo(**resp)
 
     def create_raw_data(self, run_id: int, data):
+        if self.file_format == "json":
+            data_to_save = json.dumps(data)
+        else:
+            data_to_save = str(data)
+
         self.rest_client.post(
             f"{self.fast_api_base_url}/raw_data/",
             json={
                 "run_id": run_id,
-                "data": data
+                "data": data_to_save
             },
             auth=self.fastapi_auth
         )
