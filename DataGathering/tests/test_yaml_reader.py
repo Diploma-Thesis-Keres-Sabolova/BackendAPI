@@ -12,6 +12,7 @@ providers:
     data_pth: "data"
     units_pth: null
     value_key_pth: null
+    file_format: "json"
     description: "Test desc"
     params:
       date: "{{today}}"
@@ -29,6 +30,7 @@ providers:
     data_pth: "data"
     units_pth: null
     value_key_pth: null
+    file_format: "json"
     description: "Test desc"
     params:
       date: "{{today}}"
