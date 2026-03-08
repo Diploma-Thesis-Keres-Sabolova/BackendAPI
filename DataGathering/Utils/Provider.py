@@ -92,6 +92,7 @@ class Provider:
                 "data_pth": self.data_pth,
                 "units_pth": self.units_pth,
                 "value_key_pth": self.value_key_pth,
+                "file_format": self.file_format,
                 "target_date": self.target_date.isoformat()
             }
 
@@ -164,7 +165,8 @@ class Provider:
             f"{self.fast_api_base_url}/raw_data/",
             json={
                 "run_id": run_id,
-                "data": data_to_save
+                "data": data_to_save,
+                "data_format": self.file_format,
             },
             auth=self.fastapi_auth
         )
