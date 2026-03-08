@@ -19,6 +19,7 @@ def test_normalize_openmeteo_columns(data_processor, mock_rest_client):
     data_processor.data_pth = "hourly"
     data_processor.units_pth = "hourly_units"
     data_processor.value_key_pth = None
+    data_processor.file_format = "json"
 
     mock_rest_client.get.side_effect = [
         [{"id": 1, "name": "OpenMeteo", "endpoint": "https://api.open-meteo.com/v1/forecast"}],
@@ -26,7 +27,7 @@ def test_normalize_openmeteo_columns(data_processor, mock_rest_client):
           "target_date": "2024-01-01", "status": "STARTED", "message": ""}],
     ]
 
-    data_processor.save(raw_data)
+    data_processor.save_json(raw_data)
 
     assert mock_rest_client.post.call_count == 4
 
@@ -48,6 +49,7 @@ def test_normalize_oilprice_placeholders(data_processor, mock_rest_client):
     data_processor.data_pth = "data.prices"
     data_processor.units_pth = None
     data_processor.value_key_pth = "data.prices.code"
+    data_processor.file_format = "json"
 
     mock_rest_client.get.side_effect = [
         [{"id": 2, "name": "OilPrice", "endpoint": "https://api.oilpriceapi.com/v1/prices/latest"}],
@@ -55,7 +57,7 @@ def test_normalize_oilprice_placeholders(data_processor, mock_rest_client):
           "target_date": "2024-01-01", "status": "STARTED", "message": ""}],
     ]
 
-    data_processor.save(raw_data)
+    data_processor.save_json(raw_data)
 
     assert mock_rest_client.post.call_count == 2
 
@@ -73,6 +75,7 @@ def test_normalize_oktedam_list(data_processor, mock_rest_client):
     data_processor.data_pth = ""
     data_processor.units_pth = None
     data_processor.value_key_pth = None
+    data_processor.file_format = "json"
 
     mock_rest_client.get.side_effect = [
         [{"id": 3, "name": "OkteDam", "endpoint": "https://isot.okte.sk/api/v1/dam/results"}],
@@ -80,7 +83,7 @@ def test_normalize_oktedam_list(data_processor, mock_rest_client):
           "target_date": "2024-01-01", "status": "STARTED", "message": ""}],
     ]
 
-    data_processor.save(raw_data)
+    data_processor.save_json(raw_data)
 
     assert mock_rest_client.post.call_count == 10
     assert data_processor.rows_saved == 2

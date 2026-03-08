@@ -32,7 +32,8 @@ def provider_instance():
             timestamp_pth="ts",
             data_pth="val",
             units_pth=None,
-            value_key_pth=None
+            value_key_pth=None,
+            file_format="json"
         )
         return p
 
