@@ -8,4 +8,5 @@ class RawDataInfo:
     id: int
     run_id: int
     data: Any
+    data_format: str
     created_at: datetime
