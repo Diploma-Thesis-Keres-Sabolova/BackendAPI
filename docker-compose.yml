@@ -209,6 +209,26 @@ services:
       timeout: 10s
       retries: 3
 
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: ${CONTAINER_NAME}_loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    networks:
+      - app-network
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: ${CONTAINER_NAME}_promtail
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
   grafana_data:
