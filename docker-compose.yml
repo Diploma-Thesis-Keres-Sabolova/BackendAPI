@@ -69,6 +69,11 @@ services:
     restart: always
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9091/-/healthy" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   prometheus:
     image: prom/prometheus:latest
@@ -78,6 +83,11 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   grafana:
     image: grafana/grafana:latest
@@ -92,6 +102,11 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     build:
@@ -163,6 +178,11 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9100/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
@@ -183,6 +203,11 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     networks:
       - app-network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:
