@@ -165,10 +165,12 @@ services:
       - app-network
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    image: gcr.io/cadvisor/cadvisor
     container_name: ${CONTAINER_NAME}_cadvisor
     restart: unless-stopped
     privileged: true
+    environment:
+      - DOCKER_API_VERSION=1.41
     devices:
       - /dev/kmsg
     volumes:
@@ -177,6 +179,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
     networks:
       - app-network
 
