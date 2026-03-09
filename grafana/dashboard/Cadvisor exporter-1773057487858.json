@@ -56,8 +56,9 @@
                   "text": "Up"
                 },
                 "-1": {
+                  "color": "orange",
                   "index": 2,
-                  "text": "Down"
+                  "text": "No Data"
                 }
               },
               "type": "value"
@@ -887,5 +888,5 @@
   "timezone": "",
   "title": "Cadvisor exporter",
   "uid": "pMEd7m0Mz",
-  "version": 8
+  "version": 9
 }
