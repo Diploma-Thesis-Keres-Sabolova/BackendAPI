@@ -245,6 +245,26 @@ services:
       retries: 5
       start_period: 10s
 
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:latest
+    container_name: ${CONTAINER_NAME}_rabbitmq_exporter
+    restart: unless-stopped
+    environment:
+      - RABBIT_URL=http://rabbitmq:15672
+      - RABBIT_USER=${RABBITMQ_USER}
+      - RABBIT_PASSWORD=${RABBITMQ_PASSWORD}
+      - PUBLISH_PORT=9419
+    networks:
+      - app-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9419/metrics" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data:
   grafana_data:
