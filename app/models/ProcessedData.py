@@ -1,11 +1,14 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, String
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, String, Index
 from sqlalchemy.orm import relationship
 from .Base import Base
 
 
 class ProcessedData(Base):
     __tablename__ = "processed_data"
-    __table_args__ = {"schema": "processed_data"}
+    __table_args__ = (
+        Index('idx_processed_data_run_id', 'run_id'),
+        {"schema": "processed_data"}
+    )
 
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer, ForeignKey("core.run.id"), nullable=False)

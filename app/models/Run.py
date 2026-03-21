@@ -1,11 +1,15 @@
-from sqlalchemy import Column, Integer, ForeignKey, Date, String, DateTime, func, Text
+from sqlalchemy import Column, Integer, ForeignKey, Date, String, DateTime, func, Text, Index
 from sqlalchemy.orm import relationship
 from .Base import Base
 
 
 class Run(Base):
     __tablename__ = "run"
-    __table_args__ = {"schema": "core"}
+    __table_args__ = (
+        Index('idx_run_provider_status_time_desc', 'provider_id', 'status', 'run_timestamp',
+              postgresql_ops={'run_timestamp': 'DESC'}),
+        {"schema": "core"}
+    )
 
     id = Column(Integer, primary_key=True)
     provider_id = Column(Integer, ForeignKey("core.provider.id"), nullable=False)
