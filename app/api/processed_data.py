@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 
@@ -22,22 +22,30 @@ router = APIRouter(
 @router.get("/latest", response_model=List[ProcessedDataWithRunResponse])
 def get_latest_data_for_model(
     db: Session = Depends(get_db),
-    provider_id: Optional[int] = Query(None),
-    limit: int = Query(3000, le=50000),
+    provider_id: Optional[int] = Query(None)
 ):
-    query = db.query(ProcessedData)
+    latest_run = (
+        db.query(Run)
+        .filter(Run.provider_id == provider_id)
+        .filter(Run.status == "SUCCESS")
+        .order_by(Run.run_timestamp.desc())
+        .first()
+    )
 
-    if provider_id is not None:
-        query = query.join(Run).filter(Run.provider_id == provider_id)
+    if not latest_run:
+        raise HTTPException(
+            status_code=404,
+            detail=f"There are no runs for provider with ID {provider_id}."
+        )
 
-    query = query.options(joinedload(ProcessedData.run))
-
-    return (
-        query
-        .order_by(ProcessedData.timestamp.desc())
-        .limit(limit)
+    processed_data = (
+        db.query(ProcessedData)
+        .filter(ProcessedData.run_id == latest_run.id)
+        .options(joinedload(ProcessedData.run))
         .all()
     )
+
+    return processed_data
 
 
 @router.get("/range", response_model=List[ProcessedDataWithRunResponse])
