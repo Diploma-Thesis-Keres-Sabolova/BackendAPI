@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from .CustomBaseModel import CustomBaseModel
+from .RunSchema import RunResponse
 
 
 class ProcessedDataResponse(CustomBaseModel):
@@ -38,3 +39,9 @@ class ProcessedDataUpdate(CustomBaseModel):
     name: Optional[str] = None
     value: Optional[str] = None
     unit: Optional[str] = None
+
+class ProcessedDataWithRunResponse(ProcessedDataResponse):
+    run: Optional[RunResponse] = None
+
+    class Config(CustomBaseModel.Config):
+        from_attributes = True
