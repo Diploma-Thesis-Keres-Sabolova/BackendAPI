@@ -123,17 +123,6 @@ class DataProcessor:
                 self.metrics.push_dp()
 
     def save_json(self, data) -> None:
-        provider_list = self.get_provider()
-
-        if not provider_list:
-            raise ValueError("Provider does not exist")
-
-        run_list = self.get_run()
-
-        if not run_list:
-            raise ValueError("Run does not exist")
-        else:
-            run_id = run_list[0].id
 
         timestamps = self.get_by_path(data, self.timestamp_pth)
 
@@ -158,10 +147,10 @@ class DataProcessor:
                     continue
 
                 unit = units_dict.get(key) if units_dict else None
-                self.create_processed_data(run_id, ts, key, val, unit)
+                self.create_processed_data(self.run_id, ts, key, val, unit)
 
         self.rows_saved = len(timestamps)
-        self.update_run(run_id)
+        self.update_run(self.run_id)
 
     @staticmethod
     def validate(data) -> bool:
@@ -301,28 +290,6 @@ class DataProcessor:
                 values_dict[key].append(val)
 
         return timestamps, values_dict
-
-    def get_provider(self):
-        resp = self.rest_client.get(
-            f"{self.fast_api_base_url}/provider/",
-            params={
-                "id": self.provider_id,
-            },
-            auth=self.fastapi_auth
-        )
-
-        return [ProviderInfo(**p) for p in resp] if resp else []
-
-    def get_run(self):
-        resp = self.rest_client.get(
-            f"{self.fast_api_base_url}/run/",
-            params={
-                "id": self.run_id,
-            },
-            auth=self.fastapi_auth
-        )
-
-        return [RunInfo(**p) for p in resp] if resp else []
 
     def get_raw_data(self):
         resp = self.rest_client.get(
