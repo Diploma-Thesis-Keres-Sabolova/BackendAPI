@@ -27,7 +27,7 @@ def get_latest_data_for_model(
     latest_run = (
         db.query(Run)
         .filter(Run.provider_id == provider_id)
-        .filter(Run.status == "SUCCESS PROCESSED")
+        .filter(Run.status.in_(["SUCCESS PROCESSED", "IMPUTED"]))
         .order_by(Run.run_timestamp.desc())
         .first()
     )
