@@ -1,6 +1,7 @@
 import logging
 import os
 
+from Utils.ImputationHandler import ImputationHandler
 from Utils.Logger import setup_logging
 from Utils.MetricsProvider import MetricsManager
 from Utils.YamlReader import YamlProviderLoader
@@ -32,6 +33,12 @@ def main():
         except Exception as e:
             logger.exception(f"Provider {provider.name} failed : error {e}")
             metrics.failure(provider.name)
+
+    try:
+        imputation_handler = ImputationHandler()
+        imputation_handler.run_imputation_check()
+    except Exception as e:
+        logger.exception(f"Imputation handler failed : error {e}")
 
     try:
         metrics.push_dg()
