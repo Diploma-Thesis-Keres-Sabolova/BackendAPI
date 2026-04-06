@@ -265,3 +265,235 @@ docker compose ps -a
 ```bash
 sudo ufw allow 10443/tcp
 ```
+
+---
+
+## 4: Pozorovateľnosť systému (Monitorovanie a Logovanie)
+
+V prostredí mikroslužieb, kde beží viacero nezávislých kontajnerov (API, databáza, RabbitMQ, workery), je takmer nemožné hľadať chyby manuálne. Preto zavádzame tzv. **Observability stack**, ktorý pozostáva zo zberu metrík a centralizácie logov.
+
+### 4.1 Zber metrík (Prometheus a Pushgateway)
+Na sledovanie "zdravia" systému (koľko dát sa stiahlo, ako dlho trval beh, či nastali chyby) využívame časové rady dát. 
+
+*   **Prometheus:** Slúži ako hlavná databáza pre metriky. V pravidelných intervaloch sa pýta našich služieb na ich aktuálny stav (tzv. *pull* model).
+
+*Príklad konfigurácie Promethea `prometheus.yml`:*
+
+```prometheus
+ global:
+  # ako často sa budú extrahovať metriky
+  scrape_interval: 30s
+
+ scrape_configs:
+  # názov pod ktorým budú metriky evidované
+  - job_name: 'pushgateway'
+    static_configs:
+      # endpoint na ktorom sú vystavované metriky
+      - targets: ['pushgateway:9091']
+
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: [ 'node-exporter:9100' ]
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: [ 'cadvisor:8080' ]
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: [ 'rabbitmq-exporter:9419' ]
+```
+
+*   **Pushgateway:** Keďže naše Data Gathering workery sú jednorazové skripty (zobudia sa, stiahnu dáta a vypnú sa), Prometheus by ich nemusel stihnúť zachytiť. Preto workery svoje metriky na konci behu "pretlačia" (push) do Pushgateway kontajnera, odkiaľ si ich Prometheus neskôr prevezme.
+
+### 4.2 Centralizácia logov (Loki a Promtail)
+Aby sme nemuseli do každého kontajnera vstupovať cez terminál (`docker logs`), posielame všetky výpisy na jedno miesto.
+*   **Promtail:** Malý agent, ktorý beží na serveri, číta štandardné výstupy (stdout/stderr) všetkých bežiacich Docker kontajnerov a posiela ich ďalej.
+
+*Príklad konfigurácie Promtail `promtail-config.yaml`:*
+
+```promtail
+ server:
+  # Port, na ktorom Promtail vystavuje svoje vlastné metriky
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  health_check_target: false
+
+# Keď Promtail číta logy z kontajnerov, ukladá si do tohto súboru informáciu 
+# o tom, po ktorý riadok už prečítal. Ak sa náhodou Promtail reštartuje alebo vypne, vďaka tomuto súboru 
+# po zapnutí nezačne čítať všetky logy odznova, ale bude plynulo pokračovať tam, kde prestal.
+positions:
+  filename: /tmp/positions.yaml
+
+# interný endpoint pre prijímanie dát
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    # súbory z ktorých promtail číta
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    # odstraňuje / z názvu kontajneru, aby to bolo bez / pri vizualizácii
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+```
+  
+* **Loki:** Databáza optimalizovaná na ukladanie textových logov.
+
+*Príklad konfigurácie Loki `loki-config.yaml`:*
+
+```loki
+# pre viacero inštancií (projektov), pričom každá inštancia by potrebovala vlastný token 
+ auth_enabled: false
+
+# Port, na ktorom počúva a prijíma logy od Promtailu.
+server:
+  http_listen_port: 3100
+
+#  Koreňový adresár vo vnútri kontajnera, do ktorého si Loki bude ukladať všetky svoje súbory.
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  # Beží na jendom server
+  replication_factor: 1
+  # Ukladá informácie o bežiacich inštanciách iba do RAM pamäte, neukladá ich do externej databázy. 
+  ring:
+    kvstore:
+      store: inmemory
+
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      # Akú technológiu má použiť na indexy. boltdb je rýchla malá lokálna databáza.
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      # Nastavuje rotáciu. Aby index nebol po roku obrovský a pomalý, Loki ho každých 24 hodín uzavrie a vytvorí nový s predponou index_.
+      index:
+        prefix: index_
+        period: 24h
+
+ruler:
+  alertmanager_url: http://localhost:9093
+```
+
+### 4.3 Vizualizácia (Grafana)
+Grafana slúži ako vizuálny panel (Dashboard) pre administrátora. Pripája sa na Prometheus (pre grafy) a Loki (pre textové logy).
+Vďaka konfigurácii Nginxu (z predošlej kapitoly) je Grafana dostupná na adrese `https://ip-adresa:10443/grafana/`.
+
+V Grafane si následne vieme vytvoriť grafy, ktoré nám ukazujú:
+1.  Počet úspešných / zlyhaných behov providerov.
+2.  Stav imputácie dát (či systém beží na reálnych alebo doplnených dátach).
+3.  Záťaž procesora a pamäte jednotlivých kontajnerov.
+
+---
+
+## Časť 5: Automatizácia úloh (Cron) a Workery
+
+Základom ETL systému (Extract, Transform, Load) je pravidelné spúšťanie zberu dát. V Linuxe sa na to využíva plánovač úloh **Cron**.
+
+*Poznámka: Nastavenie premennej `PYTHONPATH=/app` je kritické pre správne fungovanie relatívnych importov v Pythone, aby systém našiel všetky tvoje moduly.*
+
+### 5.1 Nastavenie Cronu na serveri
+Ak príkaz zbehol úspešne, pridáme ho do plánovača úloh, aby sa vykonával automaticky.
+
+```bash
+# Otvorenie editora pre crontab aktuálneho používateľa
+crontab -e
+```
+
+Na koniec súboru pridáme nasledujúci riadok:
+```bash
+# Aký interpretr sa má použiť
+SHELL=/bin/sh
+# Zoznam adresárov, v ktorých má systém hľadať spustiteľné programy.
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+# Koreňový adresár projektu.
+PYTHONPATH=/app
+
+# Formát: MINÚTA HODINA DEŇ_V_MESIACI MESIAC DEŇ_V_TÝŽDNI PRÍKAZ
+00 9 * * * python /app/DataGathering/app.py >> /var/log/data_gathering.log 2>&1
+```
+Tento zápis zabezpečí spustenie o 9:00 a zároveň presmeruje všetky výpisy a prípadné chyby (`2>&1`) do logovacieho súboru na hostiteľskom serveri pre spätnú kontrolu.
+
+---
+
+## Časť 7: Aktualizácia (Upgrade) PostgreSQL na novú verziu (15 -> 18)
+
+Aktualizácia databázy medzi verziami v prostredí Dockeru vyžaduje špecifický postup. PostgreSQL pri týchto prechodoch mení vnútornú štruktúru uloženia dát na disku. Ak by ste iba zmenili verziu v `docker-compose.yml`, nový kontajner by odmietol naštartovať pre nekompatibilitu súborov.
+
+Tento proces pozostáva z logického exportu dát, zmazania starého volume a následného importu dát do novej, čistej databázy.
+
+### 7.1 Krok za krokom: Migrácia na PostgreSQL 18
+
+Nasledujúce príkazy sú spúšťané priamo v priečinku, kde sa nachádza `docker-compose.yml`.
+
+```bash
+# 1. Vytvorenie kompletnej zálohy (Dump) zo starej bežiacej databázy
+# Parameter -F c znamená vytvorenie komprimovaného "custom" formátu, ideálneho pre obnovu
+docker exec -t postgres_db pg_dump -U admin -d nazov_db -F c -f /tmp/upgrade_backup.dump
+
+# Skopírovanie vytvorenej zálohy z vnútra kontajnera bezpečne na hostiteľský server
+docker cp postgres_db:/tmp/upgrade_backup.dump ./upgrade_backup.dump
+
+# 2. Zastavenie a zmazanie starého databázového kontajnera
+# API a ostatné služby môžu zatiaľ bežať
+docker compose stop db
+docker compose rm -f db
+
+# 3. Zmazanie starého volume
+# Dôležité: Toto fyzicky zmaže staré dáta. Uistite sa, že súbor ./upgrade_backup.dump má veľkosť väčšiu ako 0 bytov!
+# (Názov volume zistíte príkazom: docker volume ls | grep db)
+docker volume rm nazov_projektu_db_data
+
+# 4. Úprava súboru docker-compose.yml
+# V tomto kroku otvoríme konfiguráciu zmeníme verziu obrazu na 18 a upravíme mapovanie dát. Novšie verzie Postgresu namapujeme volume o úroveň vyššie a pomocou premennej `PGDATA` povieme databáze, nech si vytvorí vlastný podadresár `data`.
+vim docker-compose.yml
+
+Blok databázy bude vyzerať takto:
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      - PGDATA=/var/lib/postgresql/data  # Definuje presnú cestu pre uloženie dát
+    volumes:
+      - postgres_data:/var/lib/postgresql  # Volume sa mapuje o úroveň vyššie!
+
+
+# 5. Spustenie novej verzie databázy
+# Keďže sme starý volume zmazali, Docker vytvorí nový, úplne prázdny volume a inicializuje čistú databázu v18
+docker compose up -d db
+
+# 6. Počkáme pár sekúnd, kým databáza plne naštartuje, a nahráme zálohu do nového kontajnera
+docker cp ./upgrade_backup.dump postgres_db:/tmp/upgrade_backup.dump
+
+# 7. Obnova dát do novej databázy
+# Prepínač -1 (jednotka) zabezpečí, že sa celá obnova vykoná ako jedna transakcia. 
+# Ak nastane chyba, celá obnova sa bezpečne vráti späť (rollback).
+docker exec -t postgres_db pg_restore -U admin -d nazov_db -1 /tmp/upgrade_backup.dump
+
+# 8. Vyčistenie dočasných súborov
+docker exec -t postgres_db rm /tmp/upgrade_backup.dump
+rm ./upgrade_backup.dump
+```
+
+### 7.2 Kontrola úspešnosti migrácie
+Po úspešnej obnove je vhodné skontrolovať logy databázy a pripojiť sa do nej, aby sme overili, že skutočne bežíme na novej verzii.
+
+```bash
+# Kontrola logov pre prípadné chyby
+docker compose logs db
+
+# Zistenie aktuálnej verzie priamo z bežiacej databázy
+docker exec -t postgres_db psql -U admin -d nazov_db -c "SELECT version();"
+```
+*Očakávaný výstup by mal obsahovať text podobný:* `PostgreSQL 18.x on x86_64-pc-linux-musl...`
