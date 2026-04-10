@@ -118,6 +118,8 @@ services:
       - "127.0.0.1:10443:10443"
     depends_on:
       - fastapi
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:ro
     networks:
       - app-network
     healthcheck:
