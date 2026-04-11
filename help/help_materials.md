@@ -497,3 +497,141 @@ docker compose logs db
 docker exec -t postgres_db psql -U admin -d nazov_db -c "SELECT version();"
 ```
 *Očakávaný výstup by mal obsahovať text podobný:* `PostgreSQL 18.x on x86_64-pc-linux-musl...`
+
+## Časť 8: Automatizované nasadzovanie (CI/CD Pipeline) cez GitHub Actions
+
+Pre plynulé a bezpečné nasadzovanie nových verzií aplikácie na produkčný server je implementovaná automatizovaná CI/CD pipeline. Nasadzovanie sa spúšťa automaticky po úspešnom zbehnutí testov a zlúčení kódu do `master` vetvy. Z bezpečnostných dôvodov na serveri nepoužívame root/sudo práva, ale vyhradeného používateľa a SSH kľúče.
+
+### Krok 1: Príprava servera a oprávnení (Setup)
+Je potrebné vytvoriť používateľa `deploy`, pridať ho do skupiny `docker` a vytvoriť zdieľanú skupinu pre prístup k súborom projektu.
+
+```bash
+# Zdieľanie práv na priečinok projektu používateľovi deploy
+sudo groupadd app_managers
+sudo usermod -aG app_managers tvoj_pouzivatel
+sudo usermod -aG app_managers deploy
+sudo chown -R tvoj_pouzivatel:app_managers /cesta/k/projektu
+sudo chmod -R 775 /cesta/k/projektu
+```
+
+Následne je nutné Gitu povedať, že tento repozitár je zdieľaný, aby pri `git pull` nevznikol problém s oprávneniami :
+```bash
+cd /cesta/k/projektu
+git config core.sharedRepository group
+chmod -R g+w .
+find . -type d -exec chmod g+s {} +
+```
+
+### Krok 2: Prepojenie GitHubu a Servera (SSH Prístup)
+Aby sa GitHub Actions mohol prihlásiť na server a spustiť aktualizáciu, potrebuje vlastný SSH kľúč.
+
+**Na serveri (prihlásený ako používateľ `deploy`):**
+```bash
+# 1. Vygenerovanie kľúča bez hesla
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/id_github_actions
+
+# 2. Povolenie kľúča pre prihlásenie
+cat ~/.ssh/id_github_actions.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+
+# 3. Zobrazenie privátneho kľúča (tento text si skopírujte)
+cat ~/.ssh/id_github_actions
+```
+
+**Na GitHube:**
+V repozitári prejdite do **Settings -> Secrets and variables -> Actions** a vytvorte 3 nové premenné (*Repository secrets*):
+1. `SERVER_HOST` (IP adresa servera)
+2. `SERVER_USER` (hodnota: `deploy`)
+3. `SSH_PRIVATE_KEY` (vložte celý skopírovaný privátny kľúč vrátane úvodných a koncových pomlčiek)
+
+### Krok 3: Povolenie sťahovania kódu (Deploy Key)
+Používateľ `deploy` musí mať právo čítať repozitár z GitHubu. Na serveri vygenerujeme ďalší kľúč a pridáme ho do GitHubu ako *Deploy Key*.
+
+```bash
+# Na serveri (ako deploy):
+ssh-keygen -t ed25519 -C "server-deploy-key" -f ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
+```
+Skopírovaný verejný kľúč vložte na GitHube v **Settings -> Deploy keys -> Add deploy key** (bez práva na zápis).
+
+### Krok č: Vytvorenie GitHub Actions Workflow
+Oddelenie testovania (CI) a nasadzovania (CD) do zvlášť súborov. 
+
+CI - V repozitári vytvorte súbor `.github/workflows/tests.yml`:
+
+```yaml
+name: Data Gathering CI
+
+# kedy sa akcia spúšťa (v tomto prípade pri PR a zlúčení do mastra)
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+# joby, ktoré budú spustené
+jobs:
+   # kde sa dané joby budú spúšťať (v našom prípade to pôjde na VM vytvorenej GitHubom dočasne pre tento účel )
+  test:
+    runs-on: ubuntu-latest
+  # kroky, kt. budú vykonané
+    steps:
+    - name: Checkout code
+      # vstavaná GitHub action, je možné použiť rôzne už vytvorené akcie (https://github.com/actions) 
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+  
+  # vlastná imolementácia, nainštalujú sa dependencies a spustia sa testy
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-mock
+        
+        if [ -f DataGathering/requirements.txt ]; then pip install -r DataGathering/requirements.txt; fi
+
+    - name: Run Tests
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        pytest DataGathering/tests
+```
+
+CD - V repozitári vytvorte súbor `.github/workflows/deploy.yml`:
+
+```yaml
+name: Continuous Deployment (CD)
+
+# iba pri zlučení do master vetvy
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  deploy:
+    name: Deploy to Production Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        # používame github secrets pre uchovávanie citlivých údajov (https://github.com/váš_repozitár/settings/secrets/actions)
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          
+          # príkazy, ktoré sa vykonajú na produkčnom server 
+          #1 presun do priecinku s projektom
+          #2 stiahnutie aktuálnej verzie kódu
+          #3 prebuildovanie docker kontajnerov
+          script: |
+            cd /home/user/apps/BackendAPI
+            git pull origin master
+            docker compose up -d --build
+```
