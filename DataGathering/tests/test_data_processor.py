@@ -106,3 +106,33 @@ def test_normalize_oktedam_list(data_processor, mock_rest_client):
 
     assert flow_record is not None
     assert flow_record['timestamp'] == '2026-02-20T23:00:00Z'
+
+def test_normalize_energycharts_power_fore_mixed_root(data_processor, mock_rest_client):
+    """Test mixed root dict with lists and strings (EnergyCharts)"""
+
+    raw_data = load_sample("energyCharts-publicPowerForecast.json")
+
+    data_processor.run_id = 1
+    data_processor.timestamp_pth = "unix_seconds"
+    data_processor.data_pth = "forecast_values"
+    data_processor.units_pth = None
+    data_processor.value_key_pth = None
+    data_processor.file_format = "json"
+
+    data_processor.save_json(raw_data)
+
+    assert mock_rest_client.post.call_count == 2
+    assert data_processor.rows_saved == 2
+
+    posted_data = [call[1]['json'] for call in mock_rest_client.post.call_args_list]
+
+    record_1 = posted_data[0]
+    assert record_1['run_id'] == 1
+    assert record_1['name'] == 'forecast_values'
+    assert str(record_1['value']) == '81'
+    assert record_1['timestamp'] == 1776722400
+
+    record_2 = posted_data[1]
+    assert record_2['name'] == 'forecast_values'
+    assert str(record_2['value']) == '179.8'
+    assert record_2['timestamp'] == 1776726000

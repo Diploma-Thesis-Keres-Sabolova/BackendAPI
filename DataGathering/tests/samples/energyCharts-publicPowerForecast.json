@@ -1,0 +1,13 @@
+{
+  "unix_seconds": [
+    1776722400,
+    1776726000
+  ],
+  "forecast_values": [
+    81,
+    179.8
+  ],
+  "production_type": "solar",
+  "forecast_type": "day-ahead",
+  "deprecated": false
+}
