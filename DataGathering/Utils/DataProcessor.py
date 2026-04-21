@@ -128,6 +128,10 @@ class DataProcessor:
 
         values_dict = self.get_by_path(data, self.data_pth)
 
+        if isinstance(values_dict, list):
+            key_name = self.data_pth.split(".")[-1]
+            values_dict = {key_name: values_dict}
+
         if self.units_pth:
             units_dict = self.get_by_path(data, self.units_pth)
         else:

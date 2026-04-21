@@ -58,7 +58,7 @@ providers:
   - name: EnergyCharts_SkSolar
     endpoint: "https://api.energy-charts.info/public_power_forecast"
     timestamp_pth: "unix_seconds"
-    data_pth: ""
+    data_pth: "forecast_values"
     units_pth: null
     value_key_pth: null
     file_format: "json"
@@ -71,7 +71,7 @@ providers:
   - name: EnergyCharts_AtWindOnshore
     endpoint: "https://api.energy-charts.info/public_power_forecast"
     timestamp_pth: "unix_seconds"
-    data_pth: ""
+    data_pth: "forecast_values"
     units_pth: null
     value_key_pth: null
     file_format: "json"
@@ -84,7 +84,7 @@ providers:
   - name: EnergyCharts_DeWindOnshore
     endpoint: "https://api.energy-charts.info/public_power_forecast"
     timestamp_pth: "unix_seconds"
-    data_pth: ""
+    data_pth: "forecast_values"
     units_pth: null
     value_key_pth: null
     file_format: "json"
