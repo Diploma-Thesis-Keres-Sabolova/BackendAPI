@@ -54,3 +54,42 @@ providers:
       end_date: "{{today}}"
       hourly: "temperature_2m,dew_point_2m,rain,snowfall,wind_speed_10m,precipitation"
     description: "OpenMeteo Hist data"
+
+  - name: EnergyCharts_SkSolar
+    endpoint: "https://api.energy-charts.info/public_power_forecast"
+    timestamp_pth: "unix_seconds"
+    data_pth: ""
+    units_pth: null
+    value_key_pth: null
+    file_format: "json"
+    params:
+      country: "sk"
+      production_type: "solar"
+      forecast_type: "day-ahead"
+    description: "Energy Charts forecast SK (Solar)"
+
+  - name: EnergyCharts_AtWindOnshore
+    endpoint: "https://api.energy-charts.info/public_power_forecast"
+    timestamp_pth: "unix_seconds"
+    data_pth: ""
+    units_pth: null
+    value_key_pth: null
+    file_format: "json"
+    params:
+      country: "at"
+      production_type: "wind_onshore"
+      forecast_type: "day-ahead"
+    description: "Energy Charts forecast AT (Wind Onshore)"
+
+  - name: EnergyCharts_DeWindOnshore
+    endpoint: "https://api.energy-charts.info/public_power_forecast"
+    timestamp_pth: "unix_seconds"
+    data_pth: ""
+    units_pth: null
+    value_key_pth: null
+    file_format: "json"
+    params:
+      country: "de"
+      production_type: "wind_onshore"
+      forecast_type: "day-ahead"
+    description: "Energy Charts forecast DE (Wind Onshore)"
