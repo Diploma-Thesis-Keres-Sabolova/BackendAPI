@@ -267,6 +267,24 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    container_name: ${CONTAINER_NAME}_db_backup
+    restart: always
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
   grafana_data:
