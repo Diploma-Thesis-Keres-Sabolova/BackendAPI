@@ -272,7 +272,7 @@ services:
     container_name: ${CONTAINER_NAME}_db_backup
     restart: always
     volumes:
-      - ./backups:/backups
+      - ${BACKUP_DIR:-./backups}:/backups
     depends_on:
       - db
     environment:
